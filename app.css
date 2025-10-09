@@ -1,0 +1,85 @@
+:root {
+  --vauban-purple: #7c3aed;
+  --vauban-green: #22c55e;
+  --vauban-blue: #38bdf8;
+  --vauban-amber: #f59e0b;
+  --vauban-red: #ef4444;
+}
+
+/* Boutons colorés */
+.btn-primary {
+  @apply bg-green-500 hover:bg-green-600 rounded-2xl shadow px-4 py-2 font-semibold;
+}
+.btn-blue {
+  @apply bg-blue-500 hover:bg-blue-600 rounded-2xl shadow px-4 py-2 font-semibold;
+}
+.btn-amber {
+  @apply bg-yellow-500 hover:bg-yellow-600 rounded-2xl shadow px-4 py-2 font-semibold;
+}
+.btn-red {
+  @apply bg-red-500 hover:bg-red-600 rounded-2xl shadow px-4 py-2 font-semibold;
+}
+.btn-purple {
+  @apply bg-purple-500 hover:bg-purple-600 rounded-2xl shadow px-4 py-2 font-semibold;
+}
+.btn-ghost {
+  @apply bg-gray-800 hover:bg-gray-700 rounded-2xl shadow px-4 py-2 font-semibold;
+}
+
+/* Cartes et champs */
+.card {
+  @apply bg-gray-800/60 backdrop-filter backdrop-blur rounded-2xl shadow p-4;
+}
+.label {
+  @apply text-sm text-gray-300;
+}
+.input {
+  @apply w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white;
+}
+.select {
+  @apply w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-white;
+}
+
+/* Mises en page */
+.grid-2 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+}
+.kpi {
+  @apply text-center p-3 rounded-xl bg-gray-800 border border-gray-700;
+}
+
+/* Badges */
+.badge {
+  @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold;
+}
+.badge-ok {
+  @apply bg-green-600;
+}
+.badge-warn {
+  @apply bg-yellow-600;
+}
+.badge-err {
+  @apply bg-red-600;
+}
+
+/* Compteurs et chronos */
+.counter-btn {
+  @apply w-24 h-24 md:w-28 md:h-28 rounded-2xl font-black text-4xl md:text-5xl shadow;
+}
+.timer {
+  @apply text-5xl md:text-6xl font-extrabold tracking-tight;
+}
+
+/* Tableaux */
+table.results {
+  @apply w-full text-sm border-collapse;
+}
+table.results th,
+table.results td {
+  @apply border border-gray-700 px-2 py-1 text-center;
+}
+
+/* Petits textes */
+small.hint {
+  @apply text-gray-400 text-xs;
+}
