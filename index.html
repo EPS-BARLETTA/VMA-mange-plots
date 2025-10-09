@@ -1,145 +1,31 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calcul de VMA</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 20px;
-            max-width: 600px;
-            margin: auto;
-        }
-        input, button {
-            font-size: 18px;
-            margin: 10px 0;
-            padding: 10px;
-            width: 100%;
-            max-width: 500px;
-        }
-        button {
-            cursor: pointer;
-        }
-        .btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-        }
-        .results {
-            margin-top: 20px;
-        }
-        #vmaOutput {
-            color: green;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mange Plots</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
+  <link rel="stylesheet" href="./app.css" />
 </head>
-<body>
-
-    <h1>Calcul de la VMA</h1>
-
-    <!-- Information sur le coureur et l'observateur -->
-    <input type="text" id="runnerName" placeholder="Nom du coureur" required>
-    <input type="text" id="runnerClass" placeholder="Classe du coureur" required>
-    <input type="text" id="observerName" placeholder="Nom de l'observateur" required>
-
-    <!-- Durée de la course -->
-    <label for="duration">Durée de la course (en minutes, multiples de 1:30) :</label>
-    <input type="number" id="duration" min="1.5" step="1.5" value="3">
-
-    <!-- Bouton pour démarrer la course -->
-    <button class="btn" onclick="startRace()">Démarrer la course</button>
-
-    <div id="controlSection" style="display:none;">
-        <!-- Boutons de contrôle pour passer les plots et télécharger les résultats -->
-        <button class="btn" onclick="addPlot()">Passer un plot</button>
-        <button class="btn" onclick="downloadResults()">Télécharger les résultats</button>
-        
-        <!-- Affichage des informations dynamiques -->
-        <p>Temps écoulé : <span id="timeElapsed">0:00</span></p>
-        <p>Plots passés : <span id="plotCount">0</span></p>
-        <p id="vmaOutput"></p>
+<body class="min-h-screen bg-gray-900 text-white flex flex-col">
+  <main class="flex-1 flex items-center justify-center p-6">
+    <div class="text-center space-y-8 max-w-2xl">
+      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight">Mange Plots</h1>
+      <p class="text-gray-300">
+        Séances basées sur des sous-blocs de <strong>1 min 30</strong> et des <strong>% de VMA</strong>,
+        avec suivi en direct par plots de 12,5 m.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="./setup.html" class="btn-primary text-lg px-6 py-3">Démarrer</a>
+        <a href="./help.html" class="btn-purple text-lg px-6 py-3">Aide</a>
+        <a href="./safety.html" class="btn-ghost text-lg px-6 py-3">Fiche de sécurité</a>
+      </div>
     </div>
+  </main>
 
-    <script>
-        let duration, interval, timeElapsed = 0, plotCount = 0, results = [];
-
-        function startRace() {
-            // Vérifier que les champs de texte sont remplis
-            const runnerName = document.getElementById("runnerName").value;
-            const runnerClass = document.getElementById("runnerClass").value;
-            const observerName = document.getElementById("observerName").value;
-
-            if (!runnerName || !runnerClass || !observerName) {
-                alert("Veuillez remplir toutes les informations avant de démarrer la course.");
-                return;
-            }
-
-            // Initialiser les paramètres de la course
-            duration = parseFloat(document.getElementById("duration").value) * 60; // Convertir en secondes
-            plotCount = 0;
-            results = [`Coureur : ${runnerName}, Classe : ${runnerClass}, Observateur : ${observerName}`];
-            timeElapsed = 0;
-
-            // Afficher la section de contrôle
-            document.getElementById("controlSection").style.display = "block";
-            document.getElementById("plotCount").textContent = plotCount;
-            document.getElementById("timeElapsed").textContent = formatTime(0);
-            document.getElementById("vmaOutput").textContent = "";
-
-            // Lancer le chronomètre
-            interval = setInterval(updateTime, 1000);
-        }
-
-        function updateTime() {
-            timeElapsed++;
-            document.getElementById("timeElapsed").textContent = formatTime(timeElapsed);
-
-            // Toutes les 1 minute 30, calcul de la VMA
-            if (timeElapsed % 90 === 0) {
-                calculateVMA();
-            }
-
-            // Arrêt de la course quand la durée est atteinte
-            if (timeElapsed >= duration) {
-                clearInterval(interval);
-                calculateVMA();  // Calcul final
-                alert("Course terminée !");
-            }
-        }
-
-        function addPlot() {
-            plotCount++;
-            document.getElementById("plotCount").textContent = plotCount;
-        }
-
-        function calculateVMA() {
-            const vma = plotCount / 2; // La VMA est le nombre de plots passés en 1:30 divisé par 2
-            const message = `VMA après ${formatTime(timeElapsed)} : ${vma.toFixed(2)} km/h`;
-            document.getElementById("vmaOutput").textContent = message;
-            results.push(message);
-            alert(message);
-        }
-
-        function downloadResults() {
-            const blob = new Blob([results.join("\n")], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "resultats_vma.txt";
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-        }
-    </script>
-
+  <footer class="text-center text-xs text-gray-400 mt-8 py-6">
+    <hr class="border-gray-700 mb-3" />
+    <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
+  </footer>
 </body>
 </html>
