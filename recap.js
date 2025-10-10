@@ -1,4 +1,4 @@
-// recap.js — version corrigée (affichage réalisé/attendu, agrégats sur le réalisé, QR OK)
+// recap.js — QR OK + bilan "réalisé/attendu" + agrégats sur le réalisé
 const results = loadJSON("vmamp:results",[]);
 const $=(s)=>document.querySelector(s);
 
@@ -8,11 +8,11 @@ const modal       = $("#qrModal");
 const closeBtn    = $("#closeModal");
 const qrFull      = $("#qrFull");
 
-// ---- agrégats sur le RÉALISÉ ----
+// ---- agrégats calculés sur le RÉALISÉ ----
 function computeAgg(rec){
   const spacing = rec.spacing_m || 12.5;
-  let totalPlots = 0;   // cumule les plots RÉALISÉS
-  let totalSec   = 0;   // en secondes (90 par tranche)
+  let totalPlots = 0;   // plots réalisés cumulés
+  let totalSec   = 0;   // 90 s par tranche
   let blocks_total = 0;
   let blocks_ok    = 0;
 
@@ -25,12 +25,12 @@ function computeAgg(rec){
     });
   });
 
-  const distance = Math.round(totalPlots * spacing);                            // mètres
-  const vitesse  = totalSec>0 ? Math.round((distance/totalSec)*3.6*10)/10 : 0; // km/h arrondi 0,1
+  const distance = Math.round(totalPlots * spacing);                            // m
+  const vitesse  = totalSec>0 ? Math.round((distance/totalSec)*3.6*10)/10 : 0; // km/h
   return { spacing, distance, vitesse, blocks_total, blocks_ok };
 }
 
-// ---- tableau récap : une seule valeur par tranche "réalisé/attendu" ----
+// ---- tableau récap : une seule valeur "réalisé/attendu" par tranche ----
 function makeRecapTable(rec, agg, label){
   const wrap = document.createElement("div");
   wrap.innerHTML = `<h3 class="text-lg font-bold mb-2">${label} — ${rec.runner.prenom} ${rec.runner.nom} (${rec.runner.classe})</h3>`;
@@ -47,7 +47,6 @@ function makeRecapTable(rec, agg, label){
   const tbody = document.createElement("tbody");
 
   rec.courses.forEach(c=>{
-    // ⚠️ Une seule entrée par tranche, format "actual/target"
     const series = c.parts.map(p => `${p.actual}/${p.target}`).join(" • ");
     const tr = document.createElement("tr");
     tr.innerHTML = `<td>${c.label}</td><td>${c.pctVMA}%</td><td>${series}</td><td>${c.blocks_ok}/${c.blocks_total}</td>`;
@@ -78,13 +77,11 @@ function buildQRObject(rec, agg){
     espacement_m: agg.spacing,
     tol_kmh: (agg.spacing===12.5)? 0.5 : 0
   };
-  // Détails par course + tranches lisibles
   rec.courses.forEach((c,ci)=>{
     const i = ci+1;
     obj[`%VMA C${i}`] = c.pctVMA;
     const dur = (c.label.split("@")[0]||"").trim();
     obj[`Durée C${i}`] = dur;
-
     c.parts.forEach((p,pi)=>{
       const j = pi+1;
       const delta = p.diff;
@@ -92,24 +89,21 @@ function buildQRObject(rec, agg){
       const txt   = `${p.actual}/${p.target} (${delta===0?"0": (delta>0? "+"+delta: ""+delta)} ${unit})`;
       obj[`C${i}-1:30 #${j}`] = txt;
     });
-
     obj[`C${i} OK`]    = c.blocks_ok;
     obj[`C${i} Total`] = c.blocks_total;
   });
-
   obj["OK total"]    = agg.blocks_ok;
   obj["Blocs total"] = agg.blocks_total;
   return obj;
 }
 
-// ---- QR plein écran (fond blanc) ----
+// ---- Génération QR en plein écran (fond blanc) ----
 function showQR(arr){
   if(!window.QRCode){
-    alert("Librairie QRCode non chargée (qrcodejs). Vérifie la balise <script> dans recap.html.");
+    alert("Librairie QRCode non chargée. Vérifie la balise <script qrcodejs> dans recap.html.");
     return;
   }
-  // Nettoyage puis génération
-  qrFull.innerHTML = "";
+  qrFull.innerHTML = ""; // reset
   new QRCode(qrFull, {
     text: JSON.stringify(arr),
     width: 640,
@@ -122,7 +116,7 @@ function showQR(arr){
 }
 closeBtn?.addEventListener("click", ()=> modal.classList.remove("show"));
 
-// ---- Init : construire tableau + boutons QR (un par élève) ----
+// ---- Init : construit le tableau et les boutons QR ----
 (function init(){
   if(!Array.isArray(results) || results.length===0){
     recapTables.innerHTML = "<div class='text-red-600'>Aucun résultat.</div>";
@@ -136,7 +130,7 @@ closeBtn?.addEventListener("click", ()=> modal.classList.remove("show"));
     // Tableau
     makeRecapTable(rec, agg, label);
 
-    // Carte et bouton QR
+    // Carte + bouton QR (un par élève)
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -147,11 +141,11 @@ closeBtn?.addEventListener("click", ()=> modal.classList.remove("show"));
     `;
     qrButtons.appendChild(card);
 
-    // Listener — génère le QR au clic
+    // Listener génération QR au clic
     const btnFull = card.querySelector(`[data-full="${idx}"]`);
     btnFull.addEventListener("click", ()=>{
       const obj = buildQRObject(rec, agg);
-      showQR([obj]);  // tableau JSON, 1 élève ici
+      showQR([obj]);  // tableau JSON d'un seul élève
     });
   });
 })();
