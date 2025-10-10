@@ -1,76 +1,20 @@
-
-const pack = loadJSON(KEY_RUNNERS,{});
-const plan = loadJSON(KEY_PLAN,[]);
-const results = loadJSON(KEY_RESULTS,[]);
-const $=(s)=>document.querySelector(s);
-const cards=$("#cards");
-
-function aggregateRunner(rec){
-  const spacing = rec.spacing_m || 12.5;
-  let totalPlots=0, totalSec=0, blocks_total=0, blocks_ok=0;
-  let flat = {};
-  rec.courses.forEach((c,ci)=>{
-    const ci1=ci+1;
-    flat[`C${ci1}_label`]=c.label;
-    flat[`C${ci1}_pctVMA`]=c.pctVMA;
-    c.parts.forEach((p)=>{
-      totalPlots += p.actual; totalSec += 90; blocks_total += 1; if(p.ok) blocks_ok += 1;
-      flat[`C${ci1}_${p.subLabel}`] = `${p.actual}/${p.target}`;
-      flat[`C${ci1}_${p.subLabel}_diff_plots`] = p.diff;
-    });
-    flat[`C${ci1}_blocks_total`]=c.blocks_total;
-    flat[`C${ci1}_blocks_ok`]=c.blocks_ok;
-  });
-  const distance_m = Math.round(totalPlots * spacing);
-  const vitesse_kmh = totalSec>0 ? Math.round((distance_m/totalSec)*3.6*10)/10 : 0;
-  const strict = { nom: rec.runner.nom, prenom: rec.runner.prenom, classe: rec.runner.classe, sexe: rec.runner.sexe||"M", distance: distance_m, vitesse: vitesse_kmh, vma: rec.runner.vma };
-  const detailed = { ...strict, espacement_m: spacing, tolerance_kmh: 0.5, blocks_total, blocks_ok, project_validated: (blocks_total>0 && blocks_ok===blocks_total), ...flat };
-  return { strict, detailed };
-}
-
-function makeCard(rec){
-  const agg = aggregateRunner(rec);
-  const isA = rec.runnerKey==="A";
-  const card = document.createElement('div');
-  card.className = isA ? 'qrCardA' : 'qrCardB';
-  const title = `${rec.runner.prenom} ${rec.runner.nom} (${rec.runner.classe})`;
-  card.innerHTML = `
-    <h2 class="text-xl font-bold mb-2">${isA?'ÉLÈVE A':'ÉLÈVE B'} — ${title}</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-      <div class="text-center">
-        <div class="qrWhite"><div id="qr_${rec.runnerKey}" style="width:360px;height:360px;"></div></div>
-        <div class="small text-center mt-2">QR dédié à cet élève uniquement</div>
-        <div class="flex justify-center gap-2 mt-2">
-          <button class="btn btn-ghost" data-dl="${rec.runnerKey}">Télécharger PNG</button>
-          <button class="btn btn-ghost" data-copy="${rec.runnerKey}">Copier JSON</button>
-        </div>
-      </div>
-      <div class="space-y-2">
-        <div class="card">
-          <div><b>Distance</b> : ${agg.strict.distance} m</div>
-          <div><b>Vitesse moy.</b> : ${agg.strict.vitesse} km/h</div>
-          <div><b>VMA</b> : ${agg.strict.vma} km/h</div>
-        </div>
-        <div class="card">
-          <div><b>Validation projet</b> : ${agg.detailed.blocks_ok}/${agg.detailed.blocks_total} sous-blocs OK</div>
-        </div>
-      </div>
-    </div>
-  `;
-  cards.appendChild(card);
-
-  const data = [agg.detailed];
-  const el = card.querySelector(`#qr_${rec.runnerKey}`);
-  const qr = new QRCode(el, { text: JSON.stringify(data), width: 360, height: 360, colorDark:"#000000", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.Q });
-
-  card.querySelector(`[data-dl="${rec.runnerKey}"]`).addEventListener('click', ()=>{
-    const canvas = el.querySelector('canvas');
-    if(canvas){ const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download=`QR_${rec.runner.prenom}_${rec.runner.nom}.png`; a.click(); }
-  });
-  card.querySelector(`[data-copy="${rec.runnerKey}"]`).addEventListener('click', async ()=>{
-    await navigator.clipboard.writeText(JSON.stringify(data));
-    alert('JSON copié.');
-  });
-}
-
-(function init(){ results.forEach(rec=> makeCard(rec)); })();
+const results=loadJSON("vmamp:results",[]);const $=(s)=>document.querySelector(s);
+const recapTables=$("#recapTables");const qrButtons=$("#qrButtons");const modal=$("#qrModal"),closeBtn=$("#closeModal"),qrFull=$("#qrFull");
+function computeStrict(rec){const spacing=rec.spacing_m||12.5;let totalPlots=0,totalSec=0,blocks_total=0,blocks_ok=0;
+  rec.courses.forEach(c=>{c.parts.forEach(p=>{totalPlots+=p.actual;totalSec+=90;blocks_total+=1;if(p.ok)blocks_ok+=1;});});
+  const distance=Math.round(totalPlots*spacing);const vitesse=totalSec>0?Math.round((distance/totalSec)*3.6*10)/10:0;
+  return{strict:{nom:rec.runner.nom,prenom:rec.runner.prenom,classe:rec.runner.classe,sexe:rec.runner.sexe||"M",distance:distance,vitesse:vitesse,vma:rec.runner.vma},spacing,blocks_total,blocks_ok,courses:rec.courses};}
+function makeRecapTable(agg,label){const wrap=document.createElement("div");wrap.innerHTML=`<h3 class="text-lg font-bold mb-2">${label} — ${agg.strict.prenom} ${agg.strict.nom} (${agg.strict.classe})</h3>`;
+  const table=document.createElement("table");table.className="results w-full";const thead=document.createElement("thead");
+  thead.innerHTML=`<tr><th>Course</th><th>%VMA</th><th>Tranches 1:30 (réalisé/attendu)</th><th>OK</th></tr>`;table.appendChild(thead);const tbody=document.createElement("tbody");
+  agg.courses.forEach(c=>{const series=c.parts.map(p=>`${p.actual}/${p.target}`).join(" • ");const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${c.label}</td><td>${c.pctVMA}%</td><td>${series}</td><td>${c.blocks_ok}/${c.blocks_total}</td>`;tbody.appendChild(tr);});
+  const trSum=document.createElement("tr");trSum.innerHTML=`<td><b>Total</b></td><td></td><td><b>Distance:</b> ${agg.strict.distance} m • <b>Vitesse:</b> ${agg.strict.vitesse} km/h • <b>VMA:</b> ${agg.strict.vma} km/h</td><td><b>${agg.blocks_ok}/${agg.blocks_total}</b></td>`;tbody.appendChild(trSum);
+  table.appendChild(tbody);wrap.appendChild(table);recapTables.appendChild(wrap);}
+function showStrictQR(strictObj){qrFull.innerHTML="";new QRCode(qrFull,{text:JSON.stringify([strictObj]),width:640,height:640,colorDark:"#000000",colorLight:"#ffffff",correctLevel:QRCode.CorrectLevel.M});modal.classList.add("show");}
+closeBtn.addEventListener("click",()=>modal.classList.remove("show"));
+(function init(){if(!Array.isArray(results)||results.length===0){recapTables.innerHTML="<div class='text-red-600'>Aucun résultat.</div>";return;}
+  results.forEach((rec,idx)=>{const label=rec.runnerKey==="A"?"Élève A":"Élève B";const agg=computeStrict(rec);makeRecapTable(agg,label);
+    const card=document.createElement("div");card.className="card";card.innerHTML=`<h3 class="text-lg font-bold mb-2">${label} — ${agg.strict.prenom} ${agg.strict.nom}</h3><button class="btn btn-blue w-full" data-r="${idx}">QR plein écran (ScanProf)</button>`;qrButtons.appendChild(card);
+    card.querySelector(`[data-r="${idx}"]`).addEventListener("click",()=>showStrictQR(agg.strict));});
+  const params=new URLSearchParams(location.search);if(params.get("auto")==="1"){const rk=params.get("rk")||"A";const rec=results.find(r=>r.runnerKey===rk)||results[0];const agg=computeStrict(rec);showStrictQR(agg.strict);} })();

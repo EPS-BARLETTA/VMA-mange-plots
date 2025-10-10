@@ -1,25 +1,9 @@
-<!DOCTYPE html>
-<html lang="fr"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aide — Mange Plots</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
-<link rel="stylesheet" href="./app.css"/>
-</head><body class="min-h-screen">
-<header class="max-w-6xl mx-auto p-4 flex justify-between items-center">
-  <a href="./index.html" class="btn btn-ghost">Accueil</a>
-</header>
-<main class="max-w-6xl mx-auto p-4 space-y-4">
-  <h1 class="text-3xl font-extrabold">Aide</h1>
-  <div class="card space-y-3">
-    <p>⏱️ Sous-blocs de 1’30 : bip uniquement sur les <b>5 dernières secondes</b>, beep final à 1:30.</p>
-    <p>🎨 Alternance de <b>couleur de fond</b> à chaque nouveau bloc de course (repère visuel quand on enchaîne).</p>
-    <p>🏃 Pendant la course, seuls <strong>+</strong> et <strong>−</strong> sont actifs.</p>
-    <p>📏 Espacement : 12,5 m (0,5 km/h/plot) ou 25 m (1 km/h/plot).</p>
-    <p>🧮 VMA pas 0,5 ; durées multiples de 1:30 via menu déroulant.</p>
-    <p>📲 Bilan : un QR par élève (fond blanc dédié), avec toutes les infos + détails par 1:30.</p>
-  </div>
-</main>
-<footer class="text-center py-6">
-  <hr class="border-gray-700 mb-3"/><div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
-</footer>
-</body></html>
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Aide — Mange Plots</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/><link rel="stylesheet" href="./app.css"/></head><body class="min-h-screen">
+<header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2 border-gray-200"><a href="./index.html" class="btn btn-ghost">Accueil</a></header>
+<main class="max-w-6xl mx-auto p-4 space-y-4"><h1 class="text-3xl font-extrabold">Aide</h1>
+  <div class="card space-y-3"><p>⏱️ Chrono stabilisé (performance.now + requestAnimationFrame).</p>
+  <p>🔊 Bip sur les 5 dernières secondes de chaque 1:30, bip final.</p>
+  <p>🎨 Écran Course : A = <b>bleu clair</b>, B = <b>vert clair</b>.</p>
+  <p>📲 QR strict <b>ScanProf</b> : <code>[{nom, prenom, classe, sexe, distance, vitesse, vma}]</code>.</p></div></main>
+<footer class="text-center py-6 border-t-2 border-gray-200"><div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div></footer></body></html>
