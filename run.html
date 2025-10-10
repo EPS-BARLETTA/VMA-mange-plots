@@ -1,25 +1,41 @@
-<!DOCTYPE html><html lang="fr"><head>
+<!DOCTYPE html>
+<html lang="fr"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Course — Mange Plots</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/><link rel="stylesheet" href="./app.css"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/noSleep/0.12.0/NoSleep.min.js"></script></head><body class="runnerA course0">
+<title>Course — Mange Plots</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
+<link rel="stylesheet" href="./app.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noSleep/0.12.0/NoSleep.min.js"></script>
+</head><body class="runnerA course0">
 <header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2">
-  <a href="./index.html" class="btn btn-ghost">Accueil</a><div class="text-sm">Blocs 1:30 • Couleurs alternées</div></header>
+  <a href="./index.html" class="btn btn-ghost">Accueil</a>
+  <div class="text-sm">Blocs 1:30 • Couleurs alternées</div>
+</header>
 <main class="max-w-6xl mx-auto p-4 space-y-4">
   <h1 class="text-3xl font-extrabold">Course en direct</h1>
-  <section class="card"><div class="text-center">
-    <div id="runnerName" class="mb-2"><span class="firstname">—</span><span class="lastname"></span></div>
-    <div id="timer" class="timer">00:00</div>
-    <div class="subbar mt-4"><div id="subFill" class="fill"></div></div>
-    <div class="text-sm mt-1">Sous-bloc 1:30 — <span id="subLeft">01:30</span> restant — Cible: <span id="targetPlots">—</span> plots / 1:30</div>
-  </div></section>
+  <section class="card">
+    <div class="text-center">
+      <div id="runnerName" class="mb-2"><span class="firstname">—</span><span class="lastname"></span></div>
+      <div id="timer" class="timer">00:00</div>
+      <div class="subbar mt-4"><div id="subFill" class="fill"></div></div>
+      <div class="text-sm mt-1">Sous-bloc 1:30 — <span id="subLeft">01:30</span> restant — Cible: <span id="targetPlots">—</span> plots / 1:30</div>
+    </div>
+  </section>
   <section id="counterPanel" class="counter-panel">
     <div class="grid grid-cols-3 gap-4 items-center">
       <button id="btnMinus" class="counter-btn">−</button>
-      <div class="text-center"><div class="text-sm mb-1">Plots (sous-bloc)</div><div id="counter" class="text-6xl font-extrabold">0</div></div>
+      <div class="text-center">
+        <div class="text-sm mb-1">Plots (sous-bloc)</div>
+        <div id="counter" class="text-6xl font-extrabold">0</div>
+      </div>
       <button id="btnPlus" class="counter-btn">+</button>
     </div>
   </section>
-  <section class="flex justify-center gap-3"><button id="btnStart" class="btn btn-primary text-lg px-6">Démarrer</button></section>
+  <section class="flex justify-center gap-3">
+    <button id="btnStart" class="btn btn-primary text-lg px-6">Démarrer</button>
+  </section>
 </main>
-<footer class="text-center py-6 border-t-2"><div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div></footer>
-<script src="./app.js"></script><script src="./run.js"></script></body></html>
+<footer class="text-center py-6 border-t-2">
+  <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
+</footer>
+<script src="./app.js"></script><script src="./run.js"></script>
+</body></html>

@@ -1,14 +1,35 @@
-<!DOCTYPE html><html lang="fr"><head>
+<!DOCTYPE html>
+<html lang="fr"><head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Bilan — Mange Plots</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/><link rel="stylesheet" href="./app.css"/>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script></head><body>
+<title>Bilan — Mange Plots</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
+<link rel="stylesheet" href="./app.css"/>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head><body>
 <header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2 border-gray-200">
-  <a href="./index.html" class="btn btn-ghost">Accueil</a><div class="text-sm">QR strict ScanProf</div></header>
+  <a href="./index.html" class="btn btn-ghost">Accueil</a>
+  <div class="text-sm">Bilan & QR (à la demande)</div>
+</header>
 <main class="max-w-6xl mx-auto p-4 space-y-6">
   <h1 class="text-3xl font-extrabold">Bilan de la séance</h1>
-  <section class="card"><h2 class="text-xl font-bold mb-3">Récapitulatif</h2><div id="recapTables" class="space-y-6"></div></section>
+
+  <section class="card">
+    <h2 class="text-xl font-bold mb-3">Récapitulatif</h2>
+    <div id="recapTables" class="space-y-6"></div>
+  </section>
+
   <section id="qrButtons" class="grid md:grid-cols-2 gap-4"></section>
 </main>
-<div id="qrModal" class="modal"><button class="close" id="closeModal">Fermer</button><div class="qrBox"><div id="qrFull" style="width:640px;height:640px;"></div></div></div>
-<footer class="text-center py-6 border-t-2 border-gray-200"><div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div></footer>
-<script src="./app.js"></script><script src="./recap.js"></script></body></html>
+
+<div id="qrModal" class="modal">
+  <button class="close" id="closeModal">Fermer</button>
+  <div class="qrBox">
+    <div id="qrFull" style="width:640px;height:640px;"></div>
+  </div>
+</div>
+
+<footer class="text-center py-6 border-t-2 border-gray-200">
+  <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
+</footer>
+<script src="./app.js"></script><script src="./recap.js"></script>
+</body></html>
