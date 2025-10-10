@@ -1,4 +1,3 @@
-
 const $=(s)=>document.querySelector(s);
 const pack = loadJSON(KEY_RUNNERS,null);
 const plan = loadJSON(KEY_PLAN,[]);
@@ -16,32 +15,67 @@ const elTimer=$("#timer"), elSubLeft=$("#subLeft"), elSubFill=$("#subFill"),
       elCounter=$("#counter"), panel=$("#counterPanel"), elTarget=$("#targetPlots"),
       btnStart=$("#btnStart");
 
-function applyCourseTheme(){ document.body.classList.remove('course0','course1'); document.body.classList.add(`course${planIdx%2}`); }
-function bodyClassForRunner(rkey){ document.body.classList.remove('runnerA','runnerB'); document.body.classList.add(rkey==='A'?'runnerA':'runnerB'); }
+function applyCourseTheme(){
+  document.body.classList.remove('course0','course1');
+  document.body.classList.add(`course${planIdx%2}`);
+}
+function bodyClassForRunner(rkey){
+  document.body.classList.remove('runnerA','runnerB');
+  document.body.classList.add(rkey==='A'?'runnerA':'runnerB');
+}
 
 function labelForCourse(idx){ const b=plan[idx]; return `${b.duree} @ ${b.pctVMA}%`; }
 function currentRunnerKey(){ return order[orderIdx]; }
 function currentRunner(){ return pack[currentRunnerKey()]; }
 function currentCourse(){ return plan[planIdx]; }
-function mmssToSecondsLocal(s){ const [m,sec]=s.split(':').map(x=>parseInt(x,10)||0); return m*60+sec; }
-function targetPlotsPer90(){ const r=currentRunner(), b=currentCourse(); const v = r.vma * (b.pctVMA/100); return plotsTargetPer90(v, pack.spacing_m); }
-function setPanelAlt(){ panel.classList.toggle('alt', Math.floor(subElapsedSec/90)%2===1); }
 
+function mmssToSecondsLocal(s){
+  const [m,sec]=s.split(':').map(x=>parseInt(x,10)||0);
+  return m*60+sec;
+}
+function plotsTargetPer90(speed_kmh, spacing_m){
+  const kmh_per_plot = spacing_m===12.5 ? 0.5 : 1.0;
+  return Math.round(speed_kmh / kmh_per_plot);
+}
+function targetPlotsPer90(){
+  const r=currentRunner(), b=currentCourse();
+  const v = r.vma * (b.pctVMA/100);
+  return plotsTargetPer90(v, pack.spacing_m);
+}
+function setPanelAlt(){
+  panel.classList.toggle('alt', Math.floor(subElapsedSec/90)%2===1);
+}
+
+// Audio (bip 5s fin de tranche + bip passage de tranche)
 let audioCtx=null;
-function ensureAudio(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
-function beep(freq=1000, dur=0.08, vol=0.05){ if(!audioCtx) return; const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.frequency.value=freq; o.type='sine'; g.gain.value=vol; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>o.stop(), Math.floor(dur*1000)); }
+function ensureAudio(){
+  if(!audioCtx){
+    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+}
+function beep(freq=1000, dur=0.08, vol=0.05){
+  if(!audioCtx) return;
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  o.frequency.value=freq; o.type='sine'; g.gain.value=vol;
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); setTimeout(()=>o.stop(), Math.floor(dur*1000));
+}
 
 function refreshUI(){
   const r=currentRunner(); const b=currentCourse();
   elFirst.textContent = r.prenom; elLast.textContent = " " + r.nom;
+
   const left = Math.max(0, courseDur - elapsedSec);
   elTimer.textContent = secondsToMMSS(left);
+
   const subLeft = Math.max(0, 90 - subElapsedSec);
   elSubLeft.textContent = secondsToMMSS(subLeft);
   elSubFill.style.width = `${Math.min(100, (subElapsedSec/90)*100)}%`;
+
   elCounter.textContent = subPlots;
   elTarget.textContent = targetPlotsPer90();
   setPanelAlt();
+
   elTimer.classList.toggle('blink', subLeft<=5 && running);
   btnStart.disabled = running;
 }
@@ -58,17 +92,38 @@ function advanceAfterCourse(){
   const results = loadJSON(KEY_RESULTS, []);
   const rkey=currentRunnerKey();
   let rec = results.find(x=>x.runnerKey===rkey);
-  if(!rec){ rec={runnerKey:rkey, runner: currentRunner(), spacing_m: pack.spacing_m, courses: []}; results.push(rec); }
-  rec.courses.push({ label: labelForCourse(planIdx), pctVMA: currentCourse().pctVMA, parts: partsBuffer.slice(), blocks_total: partsBuffer.length, blocks_ok: partsBuffer.filter(p=>p.ok).length });
+  if(!rec){
+    rec={runnerKey:rkey, runner: currentRunner(), spacing_m: pack.spacing_m, courses: []};
+    results.push(rec);
+  }
+  rec.courses.push({
+    label: labelForCourse(planIdx),
+    pctVMA: currentCourse().pctVMA,
+    parts: partsBuffer.slice(),
+    blocks_total: partsBuffer.length,
+    blocks_ok: partsBuffer.filter(p=>p.ok).length
+  });
   saveJSON(KEY_RESULTS, results);
 
+  // Reset pour la suite
   partsBuffer=[]; subPlots=0;
-  if(order.length===2){ orderIdx=(orderIdx+1)%2; if(orderIdx===0) planIdx++; }
-  else { planIdx++; }
-  if(planIdx>=plan.length){ location.href="./recap.html"; return; }
+
+  // Alternance A/B et passage à la course suivante
+  if(order.length===2){
+    orderIdx=(orderIdx+1)%2;
+    if(orderIdx===0) planIdx++;
+  } else {
+    planIdx++;
+  }
+
+  if(planIdx>=plan.length){
+    location.href="./recap.html"; return;
+  }
+
   const sec = mmssToSecondsLocal(currentCourse().duree);
   courseDur = sec; elapsedSec=0; subElapsedSec=0;
   startMs = performance.now(); subStartMs = startMs;
+
   applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI();
 }
 
@@ -79,25 +134,42 @@ function loop(){
   subElapsedSec = Math.floor((now - subStartMs)/1000);
 
   const subLeft = 90 - subElapsedSec;
-  if(subLeft<=5 && subLeft>0 && (now%1000)<50){ beep(1200,0.06,0.05); }
+
+  // bip 5 dernières secondes de la tranche
+  if(subLeft<=5 && subLeft>0 && (now%1000)<50){
+    beep(1200,0.06,0.05);
+  }
+
+  // Passage de tranche (1:30)
   if(subElapsedSec>=90){
     beep(800,0.12,0.06);
     saveSub();
     subPlots=0;
     subStartMs += 90*1000;
   }
-  if(elapsedSec>=courseDur){
-    if(subElapsedSec>0){ saveSub(); }
+
+  // ✅ FIN DE COURSE — ne sauvegarder la tranche qu'elle est PARTIELLE (<90s)
+  if (elapsedSec >= courseDur) {
+    if (subElapsedSec > 0 && subElapsedSec < 90) {
+      saveSub();
+    }
     running=false;
     advanceAfterCourse();
     return;
   }
+
   refreshUI();
   requestAnimationFrame(loop);
 }
 
-$("#btnPlus").addEventListener("click", ()=>{ if(!running) return; subPlots+=1; refreshUI(); });
-$("#btnMinus").addEventListener("click", ()=>{ if(!running) return; if(subPlots>0) subPlots-=1; refreshUI(); });
+$("#btnPlus").addEventListener("click", ()=>{
+  if(!running) return;
+  subPlots+=1; refreshUI();
+});
+$("#btnMinus").addEventListener("click", ()=>{
+  if(!running) return;
+  if(subPlots>0) subPlots-=1; refreshUI();
+});
 $("#btnStart").addEventListener("click", ()=>{
   if(running) return;
   ensureAudio();
@@ -109,4 +181,6 @@ $("#btnStart").addEventListener("click", ()=>{
   running=true; refreshUI(); requestAnimationFrame(loop);
 });
 
-(function init(){ applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI(); })();
+(function init(){
+  applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI();
+})();
