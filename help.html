@@ -5,16 +5,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
 <link rel="stylesheet" href="./app.css"/>
 </head><body class="min-h-screen">
-<header class="max-w-5xl mx-auto p-4 flex justify-between items-center">
+<header class="max-w-6xl mx-auto p-4 flex justify-between items-center">
   <a href="./index.html" class="btn btn-ghost">Accueil</a>
 </header>
-<main class="max-w-5xl mx-auto p-4 space-y-4">
+<main class="max-w-6xl mx-auto p-4 space-y-4">
   <h1 class="text-3xl font-extrabold">Aide</h1>
   <div class="card space-y-3">
-    <p>⏱️ Sous-blocs automatiques de 1’30, deux couleurs alternées dans la zone de comptage.</p>
-    <p>🏃 Ordre des coureurs : A puis B (ou B puis A). Chaque “course” (ligne de la séance) est faite par le coureur 1 puis par le 2.</p>
-    <p>🧮 Pendant la course : boutons <strong>Démarrer</strong>, <strong>Changer de coureur</strong> et <strong>±</strong> pour compter.</p>
-    <p>📲 Bilan en fin de séance, avec QR JSON par élève + combiné compatibles ScanProf.</p>
+    <p>⏱️ Sous-blocs de 1’30 (chrono clignote sur les 10 dernières secondes, bip à la fin).</p>
+    <p>🏃 Pendant la course, seuls <strong>+</strong> et <strong>−</strong> sont actifs.</p>
+    <p>📏 Espacement : 12,5 m (0,5 km/h/plot) ou 25 m (1 km/h/plot).</p>
+    <p>🧮 VMA pas 0,5 ; durées multiples de 1:30 via menu déroulant.</p>
+    <p>📲 Bilan : un QR par élève, avec toutes les infos (ScanProf + détails “réalisé/attendu” par 1:30 et par course).</p>
   </div>
 </main>
 <footer class="text-center py-6">

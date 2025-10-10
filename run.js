@@ -1,125 +1,86 @@
 
 const $=(s)=>document.querySelector(s);
-const runners = loadJSON(KEY_RUNNERS,null);
+const pack = loadJSON(KEY_RUNNERS,null);
 const plan = loadJSON(KEY_PLAN,[]);
-let results = loadJSON(KEY_RESULTS,[]);
-if(!runners || plan.length===0){ alert("Paramétrage manquant."); location.href="./setup.html"; }
+if(!pack || plan.length===0){ alert("Paramétrage manquant."); location.href="./setup.html"; }
 
-const order = runners.order==="Bfirst" ? ["B","A"] : ["A","B"];
-let planIdx = 0;
-let runnerIdx = 0; // 0 or 1
-let running = false, timer=null, elapsed=0, subElapsed=0, subPlots=0;
+const mode=pack.mode||'duo';
+const order = mode==='duo' ? ['A','B'] : (mode==='soloA' ? ['A'] : ['B']);
+let planIdx=0, orderIdx=0;
+let running=false, timer=null, elapsed=0, subElapsed=0, subPlots=0;
+let partsBuffer=[];
 
-function currentRunnerKey(){ return order[runnerIdx]; }
-function getRunner(k){ return runners[k]; }
-function secondsToMMSS(sec){ const m=Math.floor(sec/60), s=sec%60; return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`; }
-function mmssToSeconds(str){ const [m,s]=str.split(":").map(x=>parseInt(x,10)||0); return m*60+s; }
-function speedTarget(vma,pct){ return vma*(pct/100); }
-function plotsPer90FromSpeed(speed){ return Math.round(2*speed); }
+const elFirst=$("#runnerName .firstname"), elLast=$("#runnerName .lastname");
+const elTimer=$("#timer"), elSubLeft=$("#subLeft"), elSubFill=$("#subFill"),
+      elCounter=$("#counter"), panel=$("#counterPanel"), elTarget=$("#targetPlots"),
+      btnStart=$("#btnStart");
 
-const elFirst=$("#runnerName .firstname"); const elLast=$("#runnerName .lastname");
-const elTimer=$("#timer"); const elSubLeft=$("#subLeft"); const elSubFill=$("#subFill");
-const elCounter=$("#counter"); const panel=$("#counterPanel");
-const btnStart=$("#btnStart"); const btnSwitch=$("#btnSwitch");
+function bodyClassForRunner(rkey){ document.body.classList.remove('runnerA','runnerB'); document.body.classList.add(rkey==='A'?'runnerA':'runnerB'); }
+function labelForCourse(idx){ const b=plan[idx]; return `${b.duree} @ ${b.pctVMA}%`; }
+function subLabelFor(k){ const t = k*90; const m=Math.floor(t/60), s=t%60; return `${m}:${String(s).padStart(2,'0')}`; }
+function currentRunnerKey(){ return order[orderIdx]; }
+function currentRunner(){ return pack[currentRunnerKey()]; }
+function currentCourse(){ return plan[planIdx]; }
+function targetPlotsPer90(){ const r=currentRunner(), b=currentCourse(); const v = r.vma * (b.pctVMA/100); return plotsTargetPer90(v, pack.spacing_m); }
+function setPanelAlt(){ panel.classList.toggle('alt', Math.floor(subElapsed/90)%2===1); }
 
-function setPanelColor(){
-  panel.classList.toggle("alt", Math.floor(subElapsed/90)%2===1);
-}
+let audioCtx=null;
+function ensureAudio(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+function beep(freq=880, dur=0.12, vol=0.05){ if(!audioCtx) return; const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.frequency.value=freq; o.type='sine'; g.gain.value=vol; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>{ o.stop(); }, Math.floor(dur*1000)); }
+
 function refreshUI(){
-  const bloc = plan[planIdx];
-  const runner = getRunner(currentRunnerKey());
-  elFirst.textContent = runner.prenom; elLast.textContent = " " + runner.nom;
-  const totalSec = mmssToSeconds(bloc.duree);
-  const left = Math.max(0, totalSec - elapsed);
+  const r=currentRunner(); const b=currentCourse();
+  elFirst.textContent = r.prenom; elLast.textContent = " " + r.nom;
+  const totalSec=mmssToSeconds(b.duree), left=Math.max(0,totalSec - elapsed);
   elTimer.textContent = secondsToMMSS(left);
   const subLeft = Math.max(0, 90 - subElapsed);
   elSubLeft.textContent = secondsToMMSS(subLeft);
   elSubFill.style.width = `${Math.min(100, (subElapsed/90)*100)}%`;
   elCounter.textContent = subPlots;
-  setPanelColor();
+  elTarget.textContent = targetPlotsPer90();
+  setPanelAlt();
+  elTimer.classList.toggle('blink', subLeft<=10 && running);
   btnStart.disabled = running;
 }
 
-function saveSubResult(){
-  const bloc = plan[planIdx];
-  const runnerKey = currentRunnerKey();
-  const runner = getRunner(runnerKey);
-  const vCible = speedTarget(runner.vma, bloc.pctVMA);
-  const ciblePlots = plotsPer90FromSpeed(vCible);
-  return { bloc:planIdx+1, runnerKey, nom:runner.nom, prenom:runner.prenom, classe:runner.classe,
-    duree:bloc.duree, pctVMA:bloc.pctVMA, subPlots, ciblePlots };
+function saveSub(){
+  const subIdx = partsBuffer.length+1;
+  const subLabel = subLabelFor(subIdx);
+  const target = targetPlotsPer90();
+  const diff = subPlots - target;
+  const ok = pack.spacing_m===12.5 ? (Math.abs(diff)<=1) : (diff===0);
+  partsBuffer.push({ courseIndex: planIdx, runnerKey: currentRunnerKey(), label: labelForCourse(planIdx), subLabel, target, actual: subPlots, diff, ok });
 }
 
-let partsBuffer=[];
+function advanceAfterCourse(){
+  const results = loadJSON(KEY_RESULTS, []);
+  const rkey=currentRunnerKey();
+  let rec = results.find(x=>x.runnerKey===rkey);
+  if(!rec){ rec={runnerKey:rkey, runner: currentRunner(), spacing_m: pack.spacing_m, courses: []}; results.push(rec); }
+  const blocks_total = partsBuffer.length;
+  const blocks_ok = partsBuffer.filter(p=>p.ok).length;
+  rec.courses.push({ label: labelForCourse(planIdx), parts: partsBuffer.slice(), blocks_total, blocks_ok });
+  saveJSON(KEY_RESULTS, results);
 
-function finalizeBlocForRunner(){
-  const bloc = plan[planIdx];
-  const rk = currentRunnerKey();
-  const r = getRunner(rk);
-  const parts = partsBuffer;
-  if(parts.length){
-    const totalPlots = parts.reduce((s,x)=>s+x.subPlots,0);
-    const avgPlots = totalPlots / parts.length;
-    const ecartTotal = Math.round(parts.reduce((s,x)=>s+(x.subPlots - x.ciblePlots),0)*10)/10;
-    const ecartKmH = Number((ecartTotal*0.5).toFixed(1));
-    const durationSec = parts.length*90;
-    const distance_m = totalPlots*12.5;
-    const vitesse_moy_kmh = Number(((distance_m/durationSec)*3.6).toFixed(1));
-    results.push({
-      nom:r.nom, prenom:r.prenom, classe:r.classe, vma:r.vma,
-      duree:bloc.duree, pctVMA:bloc.pctVMA,
-      vitesse_cible: speedTarget(r.vma,bloc.pctVMA).toFixed(1),
-      plots_cible_90s: plotsPer90FromSpeed(speedTarget(r.vma,bloc.pctVMA)),
-      plots_moy_90s: Math.round(avgPlots*10)/10,
-      ecart_plots_total: ecartTotal, ecart_kmh: ecartKmH,
-      distance_m: Math.round(distance_m), vitesse_moy_kmh
-    });
-    saveJSON(KEY_RESULTS, results);
-  }
+  partsBuffer=[];
+  if(order.length===2){ orderIdx = (orderIdx+1)%2; if(orderIdx===0){ planIdx++; } }
+  else { planIdx++; }
+  if(planIdx>=plan.length){ location.href="./recap.html"; return; }
+  bodyClassForRunner(currentRunnerKey()); running=false; elapsed=0; subElapsed=0; subPlots=0; refreshUI();
 }
 
 function tick(){
   elapsed++; subElapsed++;
-  if(subElapsed>=90){
-    partsBuffer.push(saveSubResult());
-    subElapsed=0; subPlots=0; setPanelColor();
-  }
-  const bloc = plan[planIdx];
-  if(elapsed>=mmssToSeconds(bloc.duree)){
-    if(subElapsed>0){ partsBuffer.push(saveSubResult()); }
-    finalizeBlocForRunner();
-    runnerIdx = (runnerIdx+1)%2;
-    if(runnerIdx===0){
-      planIdx++;
-      if(planIdx>=plan.length){
-        running=false; clearInterval(timer); timer=null;
-        location.href="./recap.html"; return;
-      }
-    }
-    elapsed=0; subElapsed=0; subPlots=0; partsBuffer=[];
-  }
+  const subLeft = 90 - subElapsed;
+  if(subLeft<=10 && subLeft>0){ beep(1000,0.05,0.03); }
+  if(subElapsed>=90){ beep(800,0.12,0.06); saveSub(); subElapsed=0; subPlots=0; setPanelAlt(); }
+  const totalSec=mmssToSeconds(currentCourse().duree);
+  if(elapsed>=totalSec){ if(subElapsed>0){ saveSub(); } clearInterval(timer); timer=null; running=false; advanceAfterCourse(); return; }
   refreshUI();
 }
 
-btnStart.addEventListener("click", ()=>{
-  if(running) return; running=true;
-  refreshUI();
-  timer = setInterval(tick,1000);
-});
-btnSwitch.addEventListener("click", ()=>{
-  if(!running){ runnerIdx = (runnerIdx+1)%2; refreshUI(); return; }
-  const bloc = plan[planIdx];
-  if(subElapsed>0){ partsBuffer.push(saveSubResult()); }
-  finalizeBlocForRunner();
-  runnerIdx = (runnerIdx+1)%2;
-  elapsed=0; subElapsed=0; subPlots=0; partsBuffer=[];
-  refreshUI();
-});
+$("#btnPlus").addEventListener("click", ()=>{ if(!running) return; subPlots+=1; refreshUI(); });
+$("#btnMinus").addEventListener("click", ()=>{ if(!running) return; if(subPlots>0) subPlots-=1; refreshUI(); });
+$("#btnStart").addEventListener("click", ()=>{ if(running) return; ensureAudio(); bodyClassForRunner(currentRunnerKey()); running=true; refreshUI(); timer=setInterval(tick,1000); });
 
-$("#btnPlus").addEventListener("click", ()=>{ subPlots+=1; refreshUI(); });
-$("#btnMinus").addEventListener("click", ()=>{ if(subPlots>0) subPlots-=1; refreshUI(); });
-
-(function init(){
-  runnerIdx = 0;
-  refreshUI();
-})();
+(function init(){ bodyClassForRunner(currentRunnerKey()); refreshUI(); })();
