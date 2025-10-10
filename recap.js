@@ -1,4 +1,4 @@
-// recap.js — robuste : charge qrcodejs si absent, délégation des clics, QR OK
+// recap.js — QR fallback anti "code length overflow" + bilan correct
 const results = loadJSON("vmamp:results",[]);
 const $=(s)=>document.querySelector(s);
 
@@ -21,14 +21,14 @@ function ensureQRCodeLib(callback){
 // ---- agrégats calculés sur le RÉALISÉ ----
 function computeAgg(rec){
   const spacing = rec.spacing_m || 12.5;
-  let totalPlots = 0;   // plots réalisés cumulés
-  let totalSec   = 0;   // 90 s par tranche
+  let totalPlots = 0;
+  let totalSec   = 0;
   let blocks_total = 0;
   let blocks_ok    = 0;
 
   rec.courses.forEach(c=>{
     c.parts.forEach(p=>{
-      totalPlots += p.actual;   // <-- réalisé
+      totalPlots += p.actual;   // réalisé
       totalSec   += 90;
       blocks_total += 1;
       if(p.ok) blocks_ok += 1;
@@ -74,8 +74,12 @@ function makeRecapTable(rec, agg, label){
   recapTables.appendChild(wrap);
 }
 
-// ---- QR détaillé (compatible ScanProf + détails lisibles) ----
-function buildQRObject(rec, agg){
+/* =========================
+   3 formats de QR JSON
+   ========================= */
+
+// 1) DÉTAILLÉ (lisible, comme demandé)
+function buildQRDetailed(rec, agg){
   const obj = {
     nom: rec.runner.nom,
     prenom: rec.runner.prenom,
@@ -107,26 +111,92 @@ function buildQRObject(rec, agg){
   return obj;
 }
 
-// ---- Génération QR en plein écran (fond blanc) ----
-function showQR(arr){
+// 2) COMPACT (clés courtes + tranches condensées) => bien plus petit
+function buildQRCompact(rec, agg){
+  const obj = {
+    nom: rec.runner.nom,
+    prenom: rec.runner.prenom,
+    classe: rec.runner.classe,
+    sexe: rec.runner.sexe || "M",
+    distance: agg.distance,
+    vitesse: agg.vitesse,
+    vma: rec.runner.vma
+    // on ne met pas les champs annexes pour gagner de la place
+  };
+  rec.courses.forEach((c,ci)=>{
+    const i = ci+1;
+    const dur = (c.label.split("@")[0]||"").trim();
+    // PCi = pourcentage VMA (nombre)
+    obj[`PC${i}`] = c.pctVMA;
+    // Di = durée "MM:SS"
+    obj[`D${i}`]  = dur;
+    // Si = tranches condensées "a/b|a/b|a/b"
+    obj[`S${i}`]  = c.parts.map(p => `${p.actual}/${p.target}`).join("|");
+    // Oi = "ok/total"
+    obj[`O${i}`]  = `${c.blocks_ok}/${c.blocks_total}`;
+  });
+  return obj;
+}
+
+// 3) STRICT (seulement les 7 champs ScanProf obligatoires)
+function buildQRStrict(rec, agg){
+  return {
+    nom: rec.runner.nom,
+    prenom: rec.runner.prenom,
+    classe: rec.runner.classe,
+    sexe: rec.runner.sexe || "M",
+    distance: agg.distance,
+    vitesse: agg.vitesse,
+    vma: rec.runner.vma
+  };
+}
+
+/* =========================
+   Génération QR avec Fallback
+   ========================= */
+
+function makeQR(text, correctLevel){
+  qrFull.innerHTML = "";
+  new QRCode(qrFull, {
+    text,
+    width: 640,
+    height: 640,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel // QRCode.CorrectLevel.L/M/Q/H
+  });
+}
+
+function showQRFallback(rec, agg){
   ensureQRCodeLib(()=>{
-    qrFull.innerHTML = ""; // reset
-    try{
-      new QRCode(qrFull, {
-        text: JSON.stringify(arr),
-        width: 640,
-        height: 640,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
-      });
-      // Afficher la modale (fallback au cas où .show ne marche pas en CSS)
-      modal?.classList?.add("show");
-      if (modal && getComputedStyle(modal).display === 'none') {
-        modal.style.display = 'flex';
+    try {
+      // 1) DÉTAILLÉ (M)
+      const detailed = JSON.stringify([buildQRDetailed(rec, agg)]);
+      makeQR(detailed, QRCode.CorrectLevel.M);
+      modal.classList.add("show");
+      return;
+    } catch(e1){
+      if(!/code length overflow/i.test(String(e1))) { alert("Erreur QR: " + e1.message); return; }
+      // 2) COMPACT (L) — beaucoup plus de capacité
+      try{
+        const compact = JSON.stringify([buildQRCompact(rec, agg)]);
+        makeQR(compact, QRCode.CorrectLevel.L);
+        modal.classList.add("show");
+        alert("QR compact affiché (payload réduit pour éviter la limite de taille).");
+        return;
+      }catch(e2){
+        if(!/code length overflow/i.test(String(e2))) { alert("Erreur QR: " + e2.message); return; }
+        // 3) STRICT (L) — 7 champs only
+        try{
+          const strict = JSON.stringify([buildQRStrict(rec, agg)]);
+          makeQR(strict, QRCode.CorrectLevel.L);
+          modal.classList.add("show");
+          alert("QR strict affiché (seulement les champs ScanProf) — le QR détaillé était trop volumineux.");
+          return;
+        }catch(e3){
+          alert("Erreur QR (strict): " + e3.message);
+        }
       }
-    }catch(err){
-      alert("Erreur génération QR : " + err.message);
     }
   });
 }
@@ -163,14 +233,13 @@ closeBtn?.addEventListener("click", ()=>{
     qrButtons.appendChild(card);
   });
 
-  // ✅ Délégation de clic (plus fiable que l’attachement individuel)
+  // Délégation de clic fiable
   qrButtons.addEventListener("click",(e)=>{
     const btn = e.target.closest("[data-full]");
     if(!btn) return;
     const idx = parseInt(btn.getAttribute("data-full"),10);
     const rec = results[idx];
     const agg = computeAgg(rec);
-    const obj = buildQRObject(rec, agg);
-    showQR([obj]);  // tableau JSON d'un seul élève
+    showQRFallback(rec, agg);
   });
 })();
