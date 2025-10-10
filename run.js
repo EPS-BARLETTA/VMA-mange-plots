@@ -4,8 +4,6 @@ const pack = loadJSON(KEY_RUNNERS,null);
 const plan = loadJSON(KEY_PLAN,[]);
 if(!pack || plan.length===0){ alert("Paramétrage manquant."); location.href="./setup.html"; }
 
-const noSleep = new NoSleep();
-
 const mode=pack.mode||'duo';
 const order = mode==='duo' ? ['A','B'] : (mode==='soloA' ? ['A'] : ['B']);
 let planIdx=0, orderIdx=0;
@@ -25,12 +23,13 @@ function labelForCourse(idx){ const b=plan[idx]; return `${b.duree} @ ${b.pctVMA
 function currentRunnerKey(){ return order[orderIdx]; }
 function currentRunner(){ return pack[currentRunnerKey()]; }
 function currentCourse(){ return plan[planIdx]; }
+function mmssToSecondsLocal(s){ const [m,sec]=s.split(':').map(x=>parseInt(x,10)||0); return m*60+sec; }
 function targetPlotsPer90(){ const r=currentRunner(), b=currentCourse(); const v = r.vma * (b.pctVMA/100); return plotsTargetPer90(v, pack.spacing_m); }
 function setPanelAlt(){ panel.classList.toggle('alt', Math.floor(subElapsedSec/90)%2===1); }
 
 let audioCtx=null;
 function ensureAudio(){ if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
-function beep(freq=880, dur=0.12, vol=0.05){ if(!audioCtx) return; const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.frequency.value=freq; o.type='sine'; g.gain.value=vol; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>o.stop(), Math.floor(dur*1000)); }
+function beep(freq=1000, dur=0.08, vol=0.05){ if(!audioCtx) return; const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.frequency.value=freq; o.type='sine'; g.gain.value=vol; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>o.stop(), Math.floor(dur*1000)); }
 
 function refreshUI(){
   const r=currentRunner(); const b=currentCourse();
@@ -56,7 +55,6 @@ function saveSub(){
 }
 
 function advanceAfterCourse(){
-  // Store result
   const results = loadJSON(KEY_RESULTS, []);
   const rkey=currentRunnerKey();
   let rec = results.find(x=>x.runnerKey===rkey);
@@ -64,13 +62,11 @@ function advanceAfterCourse(){
   rec.courses.push({ label: labelForCourse(planIdx), pctVMA: currentCourse().pctVMA, parts: partsBuffer.slice(), blocks_total: partsBuffer.length, blocks_ok: partsBuffer.filter(p=>p.ok).length });
   saveJSON(KEY_RESULTS, results);
 
-  // Next
   partsBuffer=[]; subPlots=0;
   if(order.length===2){ orderIdx=(orderIdx+1)%2; if(orderIdx===0) planIdx++; }
   else { planIdx++; }
   if(planIdx>=plan.length){ location.href="./recap.html"; return; }
-  // reset timers
-  const sec = mmssToSeconds(currentCourse().duree);
+  const sec = mmssToSecondsLocal(currentCourse().duree);
   courseDur = sec; elapsedSec=0; subElapsedSec=0;
   startMs = performance.now(); subStartMs = startMs;
   applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI();
@@ -83,7 +79,7 @@ function loop(){
   subElapsedSec = Math.floor((now - subStartMs)/1000);
 
   const subLeft = 90 - subElapsedSec;
-  if(subLeft<=5 && subLeft>0 && (now%1000)<50){ beep(1000,0.06,0.04); } // last 5s cue
+  if(subLeft<=5 && subLeft>0 && (now%1000)<50){ beep(1200,0.06,0.05); }
   if(subElapsedSec>=90){
     beep(800,0.12,0.06);
     saveSub();
@@ -105,8 +101,8 @@ $("#btnMinus").addEventListener("click", ()=>{ if(!running) return; if(subPlots>
 $("#btnStart").addEventListener("click", ()=>{
   if(running) return;
   ensureAudio();
-  try{ noSleep.enable(); }catch(e){}
-  const sec = mmssToSeconds(currentCourse().duree);
+  try{ new (window.NoSleep||function(){})().enable?.(); }catch(e){}
+  const sec = mmssToSecondsLocal(currentCourse().duree);
   courseDur = sec; elapsedSec=0; subElapsedSec=0;
   startMs = performance.now(); subStartMs = startMs;
   applyCourseTheme(); bodyClassForRunner(currentRunnerKey());
@@ -114,7 +110,3 @@ $("#btnStart").addEventListener("click", ()=>{
 });
 
 (function init(){ applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI(); })();
-document.addEventListener('visibilitychange', ()=>{ if(!running) return; // rebase on focus change
-  const now=performance.now();
-  // Keep continuity by not resetting; loop will compute from startMs
-});
