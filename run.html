@@ -53,20 +53,23 @@
           <div class="kpi"><div class="text-xs text-gray-400">Tolérance (±plots)</div><div id="kpiTol" class="text-2xl font-bold">1</div></div>
         </div>
 
-        <div class="flex items-center justify-center gap-6 py-4">
-          <button id="btnMinus" class="counter-btn">−</button>
-          <div class="text-center">
-            <div class="text-sm text-gray-400">Plots (sous-bloc)</div>
-            <div id="counter" class="text-6xl font-extrabold">0</div>
-            <div id="feedback" class="mt-2"></div>
+        <div class="counter-panel">
+          <div class="flex items-center justify-center gap-6 py-4">
+            <button id="btnMinus" class="counter-btn">−</button>
+            <div class="text-center">
+              <div class="text-sm text-gray-400">Plots (sous-bloc)</div>
+              <div id="counter" class="text-6xl font-extrabold">0</div>
+              <div id="feedback" class="mt-2"></div>
+            </div>
+            <button id="btnPlus" class="counter-btn">+</button>
           </div>
-          <button id="btnPlus" class="counter-btn">+</button>
         </div>
 
-        <div class="flex items-center justify-center gap-3">
+        <div class="flex items-center justify-center gap-3 mt-3">
           <button id="btnStart" class="btn btn-primary text-lg px-6">Démarrer</button>
           <button id="btnPause" class="btn btn-ghost text-lg px-6">Pause</button>
-          <button id="btnNext" class="btn btn-amber text-lg px-6">Sous-bloc suivant</button>
+          <button id="btnNext" class="btn btn-amber text-lg px-6">Fin 1:30 / suivant</button>
+          <button id="btnSwitchRunner" class="btn btn-blue text-lg px-6">Changer de coureur</button>
         </div>
       </section>
 
@@ -82,9 +85,16 @@
         </table>
         <div class="mt-3 space-y-2">
           <button id="btnExportCSV" class="btn btn-ghost w-full">Exporter (CSV)</button>
-          <button id="btnQRBoth" class="btn btn-blue w-full">QR pour ScanProf (2 élèves)</button>
-          <button id="btnQRA" class="btn btn-ghost w-full">QR Élève A</button>
-          <button id="btnQRB" class="btn btn-ghost w-full">QR Élève B</button>
+          <button id="btnQRBoth" class="btn btn-blue w-full">QR (JSON) 2 élèves</button>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnQRA" class="btn btn-ghost w-full">QR (JSON) A</button>
+            <button id="btnQRB" class="btn btn-ghost w-full">QR (JSON) B</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btnQRA_CSV" class="btn btn-ghost w-full">QR (CSV) A</button>
+            <button id="btnQRB_CSV" class="btn btn-ghost w-full">QR (CSV) B</button>
+          </div>
+          <button id="btnQRBoth_CSV" class="btn btn-ghost w-full">QR (CSV) 2 élèves</button>
           <div id="qrcodes" class="grid grid-cols-2 gap-2 mt-2"></div>
         </div>
       </aside>

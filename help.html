@@ -14,8 +14,10 @@
   <main class="max-w-4xl mx-auto p-4 space-y-4">
     <h1 class="text-3xl font-extrabold">Aide</h1>
     <div class="card space-y-4">
-      <p>💡 <strong>Principe :</strong> plots tous les 12,5 m, mesure en sous-blocs de 1:30, 1 plot = 0,5 km/h.</p>
-      <p>📲 <strong>QR ScanProf :</strong> le QR contient <code>{ eleves: [{ nom, prenom, classe, vma, distance, vitesse }] }</code>. Si besoin, on peut adapter le schéma sur demande.</p>
+      <p>🧭 <strong>Bouton “Fin 1:30 / suivant”</strong> : termine le sous-bloc de 1’30 et passe au suivant.</p>
+      <p>🔁 <strong>Alternance A ⇄ B</strong> : si le bloc est en mode “Alterné”, le coureur actif change automatiquement à chaque 1’30. Tu peux aussi forcer via <em>“Changer de coureur”</em>.</p>
+      <p>🎨 <strong>Couleur par bloc</strong> : la bande en haut et le panneau compteur prennent une couleur différente à chaque nouveau bloc pour un repère visuel clair.</p>
+      <p>📲 <strong>QR</strong> : deux formats proposés — <em>JSON</em> (par défaut) et <em>CSV</em> (texte lignes `nom;prenom;classe;vma;distance;vitesse`).</p>
     </div>
   </main>
   <footer class="text-center mt-8 py-6">
