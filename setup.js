@@ -2,6 +2,7 @@
 const $=(s)=>document.querySelector(s);
 const plan = loadJSON(KEY_PLAN, []);
 
+// Durées multiples de 1:30
 (function fillDurations(){
   const sel=$("#duree"); sel.innerHTML="";
   for(let t=90;t<=1800;t+=90){
@@ -10,6 +11,7 @@ const plan = loadJSON(KEY_PLAN, []);
     const opt=document.createElement('option'); opt.value=label; opt.textContent=label; sel.appendChild(opt);
   }
 })();
+
 function mmssToSec(str){ const [m,s]=str.split(':').map(x=>parseInt(x,10)||0); return m*60+s; }
 
 function renderPlan(){
@@ -48,6 +50,21 @@ $("#btnAdd").addEventListener("click", ()=>{
   const blocks=Math.round(mmssToSec(duree)/90);
   plan.push({duree, pctVMA:pct, blocks90:blocks});
   saveJSON(KEY_PLAN, plan); renderPlan();
+});
+$("#btnExport").addEventListener("click", ()=>{
+  const header="duree,pctVMA,blocks90\n";
+  const rows=plan.map(p=>[p.duree,p.pctVMA,p.blocks90].join(",")).join("\n");
+  download("seance.csv", header+rows, "text/csv");
+});
+$("#importCSV").addEventListener("change",(e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const lines=reader.result.split(/\r?\n/).filter(Boolean);
+    const out=[]; for(let i=1;i<lines.length;i++){ const [d,p,b]=lines[i].split(","); out.push({duree:d,pctVMA:Number(p),blocks90:Number(b)}); }
+    plan.length=0; plan.push(...out); saveJSON(KEY_PLAN, plan); renderPlan();
+  };
+  reader.readAsText(f);
 });
 $("#btnStart").addEventListener("click", ()=>{
   const mode=$("#mode").value;
