@@ -8,12 +8,12 @@
   <link rel="stylesheet" href="./app.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
-<body class="min-h-screen bg-gray-900 text-white">
+<body>
   <header class="max-w-6xl mx-auto p-4 flex justify-between items-center">
-    <a href="./index.html" class="btn-primary">Accueil</a>
+    <a href="./index.html" class="btn btn-ghost">Accueil</a>
     <div class="flex gap-2">
-      <button id="btnReset" class="btn-red">Réinitialiser</button>
-      <a href="./help.html" class="btn-purple">Aide</a>
+      <button id="btnReset" class="btn btn-red">Réinitialiser</button>
+      <a href="./help.html" class="btn btn-purple">Aide</a>
     </div>
   </header>
 
@@ -21,7 +21,6 @@
     <h1 class="text-3xl font-extrabold">Course en direct</h1>
 
     <div class="grid md:grid-cols-3 gap-4">
-      <!-- Zone principale -->
       <section class="card md:col-span-2">
         <div class="flex items-center justify-between">
           <div>
@@ -36,44 +35,33 @@
 
         <div class="my-4 text-center">
           <div id="timer" class="timer">00:00</div>
-          <div class="text-gray-400 text-sm mt-1">
-            Sous-bloc 1:30 — <span id="subLeft">—</span> restant
-          </div>
+          <div class="subbar mt-4"><div id="subBar" class="fill"></div></div>
+          <div class="text-gray-400 text-sm mt-2">Sous-bloc 1:30 — <span id="subLeft">—</span> restant</div>
         </div>
 
         <div class="grid grid-cols-3 gap-3 mb-3">
-          <div class="kpi">
-            <div class="text-xs text-gray-400">Cible (km/h)</div>
-            <div id="kpiVitesse" class="text-2xl font-bold">—</div>
-          </div>
-          <div class="kpi">
-            <div class="text-xs text-gray-400">Cible (plots / 1:30)</div>
-            <div id="kpiPlots" class="text-2xl font-bold">—</div>
-          </div>
-          <div class="kpi">
-            <div class="text-xs text-gray-400">Tolérance (±plots)</div>
-            <div id="kpiTol" class="text-2xl font-bold">1</div>
-          </div>
+          <div class="kpi"><div class="text-xs text-gray-400">Cible (km/h)</div><div id="kpiVitesse" class="text-2xl font-bold">—</div></div>
+          <div class="kpi"><div class="text-xs text-gray-400">Cible (plots / 1:30)</div><div id="kpiPlots" class="text-2xl font-bold">—</div></div>
+          <div class="kpi"><div class="text-xs text-gray-400">Tolérance (±plots)</div><div id="kpiTol" class="text-2xl font-bold">1</div></div>
         </div>
 
         <div class="flex items-center justify-center gap-6 py-4">
-          <button id="btnMinus" class="counter-btn btn-ghost">−</button>
+          <button id="btnMinus" class="counter-btn">−</button>
           <div class="text-center">
             <div class="text-sm text-gray-400">Plots (sous-bloc)</div>
             <div id="counter" class="text-6xl font-extrabold">0</div>
             <div id="feedback" class="mt-2"></div>
           </div>
-          <button id="btnPlus" class="counter-btn btn-ghost">+</button>
+          <button id="btnPlus" class="counter-btn">+</button>
         </div>
 
         <div class="flex items-center justify-center gap-3">
-          <button id="btnStart" class="btn-primary text-lg px-6 py-3">Démarrer</button>
-          <button id="btnPause" class="btn-ghost text-lg px-6 py-3">Pause</button>
-          <button id="btnNext" class="btn-amber text-lg px-6 py-3">Sous-bloc suivant</button>
+          <button id="btnStart" class="btn btn-primary text-lg px-6">Démarrer</button>
+          <button id="btnPause" class="btn btn-ghost text-lg px-6">Pause</button>
+          <button id="btnNext" class="btn btn-amber text-lg px-6">Sous-bloc suivant</button>
         </div>
       </section>
 
-      <!-- Suivi et QR -->
       <aside class="card">
         <h2 class="text-lg font-bold mb-2">Suivi</h2>
         <div id="runnerBadge" class="badge badge-ok mb-2">Prêt</div>
@@ -81,23 +69,21 @@
         <hr class="my-3 border-gray-700" />
         <h3 class="text-lg font-bold mb-2">Résultats de la séance</h3>
         <table class="results text-xs">
-          <thead>
-            <tr><th>Élève</th><th>Durée</th><th>%VMA</th><th>Plots/90s</th><th>Écart</th></tr>
-          </thead>
+          <thead><tr><th>Élève</th><th>Durée</th><th>%VMA</th><th>Plots/90s</th><th>Écart</th></tr></thead>
           <tbody id="tbodyResults"></tbody>
         </table>
         <div class="mt-3 space-y-2">
-          <button id="btnExportCSV" class="btn-ghost w-full">Exporter (CSV)</button>
-          <button id="btnQRBoth" class="btn-blue w-full">QR pour ScanProf (2 élèves)</button>
-          <button id="btnQRA" class="btn-ghost w-full">QR Élève A</button>
-          <button id="btnQRB" class="btn-ghost w-full">QR Élève B</button>
+          <button id="btnExportCSV" class="btn btn-ghost w-full">Exporter (CSV)</button>
+          <button id="btnQRBoth" class="btn btn-blue w-full">QR pour ScanProf (2 élèves)</button>
+          <button id="btnQRA" class="btn btn-ghost w-full">QR Élève A</button>
+          <button id="btnQRB" class="btn btn-ghost w-full">QR Élève B</button>
           <div id="qrcodes" class="grid grid-cols-2 gap-2 mt-2"></div>
         </div>
       </aside>
     </div>
   </main>
 
-  <footer class="text-center text-xs text-gray-400 mt-8 py-6">
+  <footer class="text-center mt-8 py-6">
     <hr class="border-gray-700 mb-3" />
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>

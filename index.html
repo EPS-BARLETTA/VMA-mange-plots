@@ -7,23 +7,18 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
   <link rel="stylesheet" href="./app.css" />
 </head>
-<body class="min-h-screen bg-gray-900 text-white flex flex-col">
+<body class="min-h-screen flex flex-col">
   <main class="flex-1 flex items-center justify-center p-6">
-    <div class="text-center space-y-8 max-w-2xl">
-      <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight">Mange Plots</h1>
-      <p class="text-gray-300">
-        Séances basées sur des sous-blocs de <strong>1 min 30</strong> et des <strong>% de VMA</strong>,
-        avec suivi en direct par plots de 12,5 m.
-      </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="./setup.html" class="btn-primary text-lg px-6 py-3">Démarrer</a>
-        <a href="./help.html" class="btn-purple text-lg px-6 py-3">Aide</a>
-        <a href="./safety.html" class="btn-ghost text-lg px-6 py-3">Fiche de sécurité</a>
+    <div class="text-center space-y-8 max-w-sm w-full">
+      <h1 class="text-5xl font-extrabold tracking-tight">Mange Plots</h1>
+      <div class="space-y-3 w-full">
+        <a href="./setup.html" class="btn btn-primary block w-full">Démarrer</a>
+        <a href="./help.html" class="btn btn-ghost block w-full">Aide</a>
+        <a href="./safety.html" class="btn btn-ghost block w-full">Fiche de sécurité</a>
       </div>
     </div>
   </main>
-
-  <footer class="text-center text-xs text-gray-400 mt-8 py-6">
+  <footer class="text-center mt-8 py-6">
     <hr class="border-gray-700 mb-3" />
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>
