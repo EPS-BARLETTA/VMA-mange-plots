@@ -1,4 +1,4 @@
-// recap.js — QR OK + bilan "réalisé/attendu" + agrégats sur le réalisé
+// recap.js — robuste : charge qrcodejs si absent, délégation des clics, QR OK
 const results = loadJSON("vmamp:results",[]);
 const $=(s)=>document.querySelector(s);
 
@@ -7,6 +7,16 @@ const qrButtons   = $("#qrButtons");
 const modal       = $("#qrModal");
 const closeBtn    = $("#closeModal");
 const qrFull      = $("#qrFull");
+
+// --- charge qrcodejs si manquant ---
+function ensureQRCodeLib(callback){
+  if (window.QRCode) { callback(); return; }
+  const s = document.createElement('script');
+  s.src = "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js";
+  s.onload = callback;
+  s.onerror = () => alert("Impossible de charger la librairie QRCode. Vérifie ta connexion.");
+  document.head.appendChild(s);
+}
 
 // ---- agrégats calculés sur le RÉALISÉ ----
 function computeAgg(rec){
@@ -99,22 +109,33 @@ function buildQRObject(rec, agg){
 
 // ---- Génération QR en plein écran (fond blanc) ----
 function showQR(arr){
-  if(!window.QRCode){
-    alert("Librairie QRCode non chargée. Vérifie la balise <script qrcodejs> dans recap.html.");
-    return;
-  }
-  qrFull.innerHTML = ""; // reset
-  new QRCode(qrFull, {
-    text: JSON.stringify(arr),
-    width: 640,
-    height: 640,
-    colorDark: "#000000",
-    colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.M
+  ensureQRCodeLib(()=>{
+    qrFull.innerHTML = ""; // reset
+    try{
+      new QRCode(qrFull, {
+        text: JSON.stringify(arr),
+        width: 640,
+        height: 640,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      // Afficher la modale (fallback au cas où .show ne marche pas en CSS)
+      modal?.classList?.add("show");
+      if (modal && getComputedStyle(modal).display === 'none') {
+        modal.style.display = 'flex';
+      }
+    }catch(err){
+      alert("Erreur génération QR : " + err.message);
+    }
   });
-  modal.classList.add("show");
 }
-closeBtn?.addEventListener("click", ()=> modal.classList.remove("show"));
+
+// Fermer la modale
+closeBtn?.addEventListener("click", ()=>{
+  modal?.classList?.remove("show");
+  if(modal) modal.style.display = 'none';
+});
 
 // ---- Init : construit le tableau et les boutons QR ----
 (function init(){
@@ -140,12 +161,16 @@ closeBtn?.addEventListener("click", ()=> modal.classList.remove("show"));
       </div>
     `;
     qrButtons.appendChild(card);
+  });
 
-    // Listener génération QR au clic
-    const btnFull = card.querySelector(`[data-full="${idx}"]`);
-    btnFull.addEventListener("click", ()=>{
-      const obj = buildQRObject(rec, agg);
-      showQR([obj]);  // tableau JSON d'un seul élève
-    });
+  // ✅ Délégation de clic (plus fiable que l’attachement individuel)
+  qrButtons.addEventListener("click",(e)=>{
+    const btn = e.target.closest("[data-full]");
+    if(!btn) return;
+    const idx = parseInt(btn.getAttribute("data-full"),10);
+    const rec = results[idx];
+    const agg = computeAgg(rec);
+    const obj = buildQRObject(rec, agg);
+    showQR([obj]);  // tableau JSON d'un seul élève
   });
 })();
