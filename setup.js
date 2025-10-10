@@ -1,80 +1,51 @@
 
 const $=(s)=>document.querySelector(s);
-const plan = loadJSON(KEY_PLAN, []);
+const plan=[];
 
-(function fillDurations(){
-  const sel=$("#duree"); sel.innerHTML="";
-  for(let t=90;t<=1800;t+=90){
-    const m=Math.floor(t/60), s=t%60;
-    const label=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    const opt=document.createElement('option'); opt.value=label; opt.textContent=label; sel.appendChild(opt);
-  }
-})();
-function mmssToSec(str){ const [m,s]=str.split(':').map(x=>parseInt(x,10)||0); return m*60+s; }
+// durations: only multiples of 1:30
+const sel=$("#duree");
+for(let t=90;t<=1800;t+=90){
+  const m=(t/60)|0, s=t%60;
+  const l=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const o=document.createElement('option'); o.value=l; o.textContent=l; sel.appendChild(o);
+}
+function mmssToSec(x){const[a,b]=x.split(':').map(v=>parseInt(v,10)||0);return a*60+b;}
 
-function renderPlan(){
-  const tb=$("#tbodyPlan"); tb.innerHTML="";
-  plan.forEach((b,i)=>{
+function render(){
+  const tb=$("#tbodyPlan"); tb.innerHTML='';
+  plan.forEach((p,i)=>{
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td>${b.duree}</td><td>${b.pctVMA}%</td><td>${b.blocks90}</td>
-      <td><button data-i="${i}" class="btn btn-amber text-xs px-2 py-1">Supprimer</button></td>`;
+    tr.innerHTML=`<td>${i+1}</td><td>${p.duree}</td><td>${p.pct}%</td><td>${p.blocks}</td>
+      <td><button data-i='${i}' class='btn'>Supprimer</button></td>`;
     tb.appendChild(tr);
   });
-  updateButtons();
 }
-function updateButtons(){
-  const mode=$("#mode").value;
-  let okA = $("#a_nom").value.trim() && $("#a_prenom").value.trim() && $("#a_classe").value.trim() && $("#a_vma").value.trim();
-  let okB = $("#b_nom").value.trim() && $("#b_prenom").value.trim() && $("#b_classe").value.trim() && $("#b_vma").value.trim();
-  if(mode==="soloA"){ okB=true; }
-  if(mode==="soloB"){ okA=true; }
-  $("#btnStart").disabled = !(okA && okB && plan.length>0);
-  $("#btnAdd").disabled = !($("#pct").value && $("#duree").value);
-}
-document.addEventListener("input", e=>{ if(e.target.matches(".input,.select")) updateButtons(); });
-document.addEventListener("change", e=>{ if(e.target.matches(".input,.select")) updateButtons(); });
-$("#tbodyPlan").addEventListener("click",(e)=>{
-  const i=e.target?.dataset?.i; if(i===undefined) return;
-  plan.splice(parseInt(i,10),1); saveJSON(KEY_PLAN, plan); renderPlan();
+document.addEventListener('click',e=>{
+  if(e.target.matches('[data-i]')){
+    plan.splice(parseInt(e.target.dataset.i,10),1); render();
+  }
 });
-$("#btnPreset1").addEventListener("click", ()=>{
-  const presets=[{duree:"04:30", pctVMA:80},{duree:"06:00", pctVMA:90},{duree:"03:00", pctVMA:100}];
-  presets.forEach(p=> plan.push({...p, blocks90: Math.round(mmssToSec(p.duree)/90)}));
-  saveJSON(KEY_PLAN, plan); renderPlan();
+$("#btnPreset").addEventListener('click',()=>{
+  const presets=[["04:30",80],["06:00",90],["03:00",100]];
+  presets.forEach(([d,p])=>plan.push({duree:d,pct:p,blocks:Math.round(mmssToSec(d)/90)}));
+  render();
 });
-$("#btnAdd").addEventListener("click", ()=>{
+$("#btnAdd").addEventListener('click',()=>{
   const duree=$("#duree").value;
-  const pct=parseInt($("#pct").value,10);
-  const blocks=Math.round(mmssToSec(duree)/90);
-  plan.push({duree, pctVMA:pct, blocks90:blocks});
-  saveJSON(KEY_PLAN, plan); renderPlan();
+  const pct=parseInt($("#pct").value,10)||0;
+  plan.push({duree, pct, blocks:Math.round(mmssToSec(duree)/90)});
+  render();
 });
-$("#btnExport").addEventListener("click", ()=>{
-  const header="duree,pctVMA,blocks90\n";
-  const rows=plan.map(p=>[p.duree,p.pctVMA,p.blocks90].join(",")).join("\n");
-  download("seance.csv", header+rows, "text/csv");
-});
-$("#importCSV").addEventListener("change",(e)=>{
-  const f=e.target.files[0]; if(!f) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
-    const lines=reader.result.split(/\r?\n/).filter(Boolean);
-    const out=[]; for(let i=1;i<lines.length;i++){ const [d,p,b]=lines[i].split(","); out.push({duree:d,pctVMA:Number(p),blocks90:Number(b)}); }
-    plan.length=0; plan.push(...out); saveJSON(KEY_PLAN, plan); renderPlan();
-  };
-  reader.readAsText(f);
-});
-$("#btnStart").addEventListener("click", ()=>{
-  const mode=$("#mode").value;
-  const spacing=parseFloat($("#spacing").value);
+$("#btnStart").addEventListener('click',()=>{
   const pack={
-    mode, spacing_m: spacing,
-    A:{ nom:$("#a_nom").value.trim(), prenom:$("#a_prenom").value.trim(), classe:$("#a_classe").value.trim(), sexe:$("#a_sexe").value, vma: parseFloat($("#a_vma").value||"0") },
-    B:{ nom:$("#b_nom").value.trim(), prenom:$("#b_prenom").value.trim(), classe:$("#b_classe").value.trim(), sexe:$("#b_sexe").value, vma: parseFloat($("#b_vma").value||"0") }
+    mode:$("#mode").value,
+    spacing_m: parseFloat($("#spacing").value),
+    A:{nom:$("#a_nom").value.trim(), prenom:$("#a_prenom").value.trim(), classe:$("#a_classe").value.trim(), sexe:$("#a_sexe").value, vma:parseFloat($("#a_vma").value||'0')},
+    B:{nom:$("#b_nom").value.trim(), prenom:$("#b_prenom").value.trim(), classe:$("#b_classe").value.trim(), sexe:$("#b_sexe").value, vma:parseFloat($("#b_vma").value||'0')},
   };
   saveJSON(KEY_RUNNERS, pack);
-  saveJSON(KEY_PLAN, plan);
+  saveJSON(KEY_PLAN, plan.map(p=>({duree:p.duree, pctVMA:p.pct, blocks90:p.blocks})));
   saveJSON(KEY_RESULTS, []);
-  location.href="./run.html";
+  location.href='./run.html';
 });
-renderPlan(); updateButtons();
+render();
