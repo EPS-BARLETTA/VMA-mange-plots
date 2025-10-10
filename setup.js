@@ -4,7 +4,11 @@ const plan = loadJSON(KEY_PLAN, []);
 
 function fillDurations(){
   const sel=$("#duree"); sel.innerHTML="";
-  for(let t=90;t<=1800;t+=90){ const m=Math.floor(t/60), s=t%60; const label=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; const opt=document.createElement('option'); opt.value=label; opt.textContent=label; sel.appendChild(opt); }
+  for(let t=90;t<=1800;t+=90){
+    const m=Math.floor(t/60), s=t%60;
+    const label=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const opt=document.createElement('option'); opt.value=label; opt.textContent=label; sel.appendChild(opt);
+  }
 }
 fillDurations();
 function mmssToSec(str){ const [m,s]=str.split(':').map(x=>parseInt(x,10)||0); return m*60+s; }

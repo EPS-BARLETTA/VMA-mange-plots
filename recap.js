@@ -12,6 +12,7 @@ function aggregateRunner(rec){
   rec.courses.forEach((c,ci)=>{
     const ci1=ci+1;
     flat[`C${ci1}_label`]=c.label;
+    flat[`C${ci1}_pctVMA`]=c.pctVMA;
     c.parts.forEach((p)=>{
       totalPlots += p.actual; totalSec += 90; blocks_total += 1; if(p.ok) blocks_ok += 1;
       flat[`C${ci1}_${p.subLabel}`] = `${p.actual}/${p.target}`;
@@ -36,9 +37,9 @@ function makeCard(rec){
   card.innerHTML = `
     <h2 class="text-xl font-bold mb-2">${isA?'ÉLÈVE A':'ÉLÈVE B'} — ${title}</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-      <div>
-        <div id="qr_${rec.runnerKey}" style="width:360px;height:360px;margin:auto;"></div>
-        <div class="small text-center mt-2">Espacement: ${agg.detailed.espacement_m} m • Tolérance: ±0,5 km/h</div>
+      <div class="text-center">
+        <div class="qrWhite"><div id="qr_${rec.runnerKey}" style="width:360px;height:360px;"></div></div>
+        <div class="small text-center mt-2">QR dédié à cet élève uniquement</div>
         <div class="flex justify-center gap-2 mt-2">
           <button class="btn btn-ghost" data-dl="${rec.runnerKey}">Télécharger PNG</button>
           <button class="btn btn-ghost" data-copy="${rec.runnerKey}">Copier JSON</button>
@@ -60,7 +61,7 @@ function makeCard(rec){
 
   const data = [agg.detailed];
   const el = card.querySelector(`#qr_${rec.runnerKey}`);
-  const qr = new QRCode(el, { text: JSON.stringify(data), width: 360, height: 360, correctLevel: QRCode.CorrectLevel.Q });
+  const qr = new QRCode(el, { text: JSON.stringify(data), width: 360, height: 360, colorDark:"#000000", colorLight:"#ffffff", correctLevel: QRCode.CorrectLevel.Q });
 
   card.querySelector(`[data-dl="${rec.runnerKey}"]`).addEventListener('click', ()=>{
     const canvas = el.querySelector('canvas');
