@@ -1,10 +1,10 @@
-// recap.js — Tableau récap + QR compact (par course) compatible ScanProf
-// Schéma QR: [{ nom, prenom, classe, sexe, vma, s1, pc1, o1, s2, pc2, o2, s3, pc3, o3 }, (2e élève optionnel)]
+// recap.js — Tableau récap + QR compact borné (1 élève / QR) compatible ScanProf
+// Schéma QR: [{ nom, prenom, classe, sexe, vma, s1, o1, (pc1?), s2, o2, (pc2?), s3, o3, (pc3?) }]
 
 // =====================
 // Données + helpers DOM
 // =====================
-const results = loadJSON("vmamp:results", []); // déjà fourni ailleurs dans l'app
+const results = loadJSON("vmamp:results", []); // fourni ailleurs dans l'app
 const $ = (s) => document.querySelector(s);
 
 const recapTables = $("#recapTables");
@@ -21,7 +21,7 @@ function ensureQRCodeLib(callback){
   const s = document.createElement('script');
   s.src = "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js";
   s.onload = callback;
-  s.onerror = () => alert("Impossible de charger la librairie QRCode.");
+  s.onerror = () => alert("Impossible de charger la librairie QRCode (qrcodejs). Vérifie la connexion.");
   document.head.appendChild(s);
 }
 
@@ -89,55 +89,70 @@ function makeRecapTable(rec, agg, label){
 }
 
 // ========================================
-// QR compact façon "LaserRun", par course
+// QR compact par course + bornes strictes
 // ========================================
 
-// Nettoyage léger (accents → ASCII, trim, limite longueur pour éviter surprises)
-function _clean(s, max){
+// 1 élève / QR (bornage taille)
+const USE_TWO_STUDENTS = false;
+
+// Caps durs sur les textes & longueurs des chaînes s1/s2/s3
+const CAPS = {
+  NOM: 18,          // ex. "DUPONT"
+  PRENOM: 18,       // ex. "LUCAS"
+  CLASSE: 8,        // ex. "2A", "4B"
+  MAX_S_LEN: 180,   // longueur max d'une chaîne sN = "a/b|a/b|..."
+  OVERFLOW_SEUIL: 1000 // si payload > seuil, on retire pc1..3
+};
+
+// Nettoyage + cap
+function cleanCap(s, max){
   const t = String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  return max && t.length>max ? t.slice(0,max) : t;
+  return (max && t.length > max) ? t.slice(0, max) : t;
 }
 
-// Construit 1 élève compacté par course : s1/s2/s3, pc1.., o1..
+// Construit 1 élève compacté par course : s1/s2/s3 (tronqués), o1/o2/o3, pc1..pc3 optionnels
 function buildRowMP(rec){
   const row = {
-    nom:    _clean((rec?.runner?.nom||"").toUpperCase(), 24),
-    prenom: _clean(rec?.runner?.prenom||"", 24),
-    classe: _clean(rec?.runner?.classe||"", 16),
-    sexe:   _clean(rec?.runner?.sexe||"", 1),
+    nom:    cleanCap((rec?.runner?.nom||"").toUpperCase(), CAPS.NOM),
+    prenom: cleanCap(rec?.runner?.prenom||"", CAPS.PRENOM),
+    classe: cleanCap(rec?.runner?.classe||"", CAPS.CLASSE),
+    sexe:   cleanCap(rec?.runner?.sexe||"", 1),
     vma:    Number(rec?.runner?.vma||0)
   };
 
   (rec?.courses||[]).slice(0,3).forEach((c, idx)=>{
     const i = idx+1;
     const parts = (c?.parts||[]);
-    const s  = parts.map(p=>`${p.actual}/${p.target}`).join("|");  // "a/b|a/b|..."
+    let s = parts.map(p=>`${p.actual}/${p.target}`).join("|"); // "a/b|a/b|..."
+    if (s.length > CAPS.MAX_S_LEN) s = s.slice(0, CAPS.MAX_S_LEN) + "+"; // marque une coupe
     const ct = parts.length;
     const ok = parts.reduce((n,p)=> n + (p.ok?1:0), 0);
+
     row[`s${i}`]  = s;
-    row[`pc${i}`] = Math.round(Number(c?.pctVMA||0));
     row[`o${i}`]  = `${ok}/${ct}`;
+    row[`pc${i}`] = Math.round(Number(c?.pctVMA||0)); // on enlèvera plus tard si trop gros
   });
 
   return row;
 }
 
-// Emballe 1 ou 2 élèves dans un tableau JSON (format attendu par ScanProf)
-function buildPayload(rows){ return JSON.stringify(rows); }
+// Emballe 1 élève dans un tableau JSON
+function buildPayloadOne(row){ return JSON.stringify([row]); }
 
-// Mini diagnostic sous le QR
-function _qrDiag(txt){
+// Mini diagnostic sous le QR (longueur totale + tailles s1/s2/s3)
+function showDiag(text){
   const id="qrDiag"; let box=document.getElementById(id);
   if(!box){
     box=document.createElement("div");
     box.id=id; box.style.fontFamily="monospace"; box.style.fontSize="12px"; box.style.marginTop="8px";
+    box.style.whiteSpace="pre-wrap";
     qrFull.parentNode.insertBefore(box, qrFull.nextSibling);
   }
-  box.textContent = txt;
+  box.textContent = text;
 }
 
 // Générateur QR (capacité max via niveau L)
-function _renderQR(text){
+function renderQR(text){
   qrFull.innerHTML = "";
   new QRCode(qrFull, {
     text, width: 640, height: 640,
@@ -146,27 +161,30 @@ function _renderQR(text){
   });
 }
 
-// OPTION: générer 2 élèves par QR (comme tes autres apps)
-// true  = 2 élèves si dispo ; false = 1 élève/QR
-const USE_TWO_STUDENTS = true;
-
 // ======================
-// Génération + Fallback
+// Génération + fallback
 // ======================
 function showQRFallback(rec){
   ensureQRCodeLib(()=>{
     try{
-      const rows = [];
-      rows.push(buildRowMP(rec));
+      // 1) construit la ligne compactée avec caps
+      const row = buildRowMP(rec);
 
-      if (USE_TWO_STUDENTS) {
-        const idx = results.indexOf(rec);
-        if (idx>=0 && idx+1<results.length) rows.push(buildRowMP(results[idx+1]));
+      // 2) si le JSON est trop long, supprimer pc1..3 (gros gain)
+      let payload = buildPayloadOne(row);
+      if (payload.length > CAPS.OVERFLOW_SEUIL) {
+        delete row.pc1; delete row.pc2; delete row.pc3;
+        payload = buildPayloadOne(row);
       }
 
-      const payload = buildPayload(rows);
-      _renderQR(payload);
-      _qrDiag(`payload length=${payload.length} | eleves=${rows.length}`);
+      // 3) rendu QR
+      renderQR(payload);
+
+      // 4) diagnostic : len total + tailles s1/s2/s3 + présence pc*
+      const s1 = (row.s1||"").length, s2 = (row.s2||"").length, s3 = (row.s3||"").length;
+      const pc1 = (row.pc1==null)?"-":row.pc1, pc2 = (row.pc2==null)?"-":row.pc2, pc3 = (row.pc3==null)?"-":row.pc3;
+      showDiag(`len=${payload.length} | s1=${s1} s2=${s2} s3=${s3} | pc1=${pc1} pc2=${pc2} pc3=${pc3}`);
+
       if (modal){ modal.classList.add("show"); modal.style.display='block'; }
     }catch(e){
       alert("Erreur QR: " + (e?.message || e));
@@ -213,7 +231,7 @@ closeBtn?.addEventListener("click", ()=>{
     qrButtons.appendChild(card);
   });
 
-  // Délégation clic : un bouton → un QR (1 ou 2 élèves selon USE_TWO_STUDENTS)
+  // Délégation clic : un bouton → un QR (1 élève par QR)
   qrButtons.addEventListener("click",(e)=>{
     const btn = e.target.closest("[data-full]");
     if(!btn) return;
