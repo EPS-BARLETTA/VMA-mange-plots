@@ -1,10 +1,9 @@
-// recap.js — Tableau récap + QR ScanProf (fallback anti-overflow + diagnostic)
+// recap.js — Tableau récap + QR ScanProf (noPct → strict → ultraStrict) + diag taille
 
 /* --------------------------
    Données + helpers DOM
 --------------------------- */
-// loadJSON est supposé défini ailleurs dans l'app
-const results = loadJSON("vmamp:results", []);
+const results = loadJSON("vmamp:results", []); // fourni ailleurs dans l'app
 const $ = (s) => document.querySelector(s);
 
 const recapTables = $("#recapTables");
@@ -26,27 +25,27 @@ function ensureQRCodeLib(callback){
 }
 
 /* --------------------------
-   Outils utilitaires (QR uniquement)
-   - on NE change PAS l'affichage, seulement le contenu du QR
+   Outils (pour le QR uniquement)
+   → n'affecte pas l'affichage
 --------------------------- */
-function stripDiacritics(str){
-  try { return (str || "").normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
-  catch { return str || ""; }
+function _stripDiacritics(str){
+  try { return (str||"").normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+  catch { return str||""; }
 }
-function sanitizeText(str, maxLen){
-  const s = stripDiacritics(String(str || ""));
-  return (maxLen && s.length > maxLen) ? s.slice(0, maxLen) : s;
+function _clean(str, max){
+  const s = _stripDiacritics(String(str||"").trim());
+  return (max && s.length>max) ? s.slice(0, max) : s;
 }
-function isoDateOrToday(s){
-  if (typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+function _isoDateOrToday(s){
+  if (typeof s==="string" && /^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   try { return new Date().toISOString().slice(0,10); } catch { return ""; }
 }
 
 /* --------------------------
-   Agrégats calculés sur le RÉALISÉ (affichage)
+   Agrégats (affichage)
 --------------------------- */
 function computeAgg(rec){
-  const spacing = rec.spacing_m || 12.5; // m entre plots
+  const spacing = rec.spacing_m || 12.5; // mètres entre plots
   let totalPlots = 0, totalSec = 0, blocks_total = 0, blocks_ok = 0;
 
   (rec.courses || []).forEach(c=>{
@@ -64,7 +63,7 @@ function computeAgg(rec){
 }
 
 /* --------------------------
-   Tableau récapitulatif (affichage)
+   Tableau récap (affichage)
 --------------------------- */
 function makeRecapTable(rec, agg, label){
   const wrap = document.createElement("div");
@@ -107,143 +106,110 @@ function makeRecapTable(rec, agg, label){
 
 /* --------------------------
    BUILDERS QR 100% ScanProf
-   - 1 élève par QR : payload = [ { ... } ]
-   - Clés plates : Nom, Prénom, Classe, Sexe, VMA, Séance, B1..Bn, %V1..%Vn
+   → 1 élève par QR : payload = [ { ... } ]
 --------------------------- */
-function buildRowBaseForQR(rec){
-  // Nettoyage léger pour le QR (accents/longueurs) — l'affichage à l'écran n'est PAS modifié
-  const nom    = sanitizeText((rec.runner?.nom || "").toUpperCase(), 32);
-  const prenom = sanitizeText(rec.runner?.prenom || "", 32);
-  const classe = sanitizeText(rec.runner?.classe || "", 24);
-  const sexe   = sanitizeText(rec.runner?.sexe || "", 1); // "M" ou "F" en général
-  const vma    = Number(rec.runner?.vma || 0);
-  const seance = isoDateOrToday(rec?.seanceISO);
 
+// Base "strict" (clés standard, valeurs nettoyées + tronquées)
+function buildScanProfRow_Strict(rec){
   return {
-    "Nom": nom,
-    "Prénom": prenom,
-    "Classe": classe,
-    "Sexe": sexe,
-    "VMA": vma,
-    "Séance": seance
+    "Nom": _clean((rec.runner?.nom||"").toUpperCase(), 24),
+    "Prénom": _clean(rec.runner?.prenom||"", 24),
+    "Classe": _clean(rec.runner?.classe||"", 16),
+    "Sexe": _clean(rec.runner?.sexe||"", 1), // M/F
+    "VMA": Number(rec.runner?.vma||0),
+    "Séance": _isoDateOrToday(rec?.seanceISO)
   };
 }
 
-function buildScanProfRow_Full(rec){
-  const row = buildRowBaseForQR(rec);
-  let k = 0;
-  (rec.courses || []).forEach(c=>{
-    const pct = Math.round(Number(c.pctVMA || 0));
-    (c.parts || []).forEach(p=>{
-      k += 1;
-      row["B"+k]  = `${p.actual}/${p.target}`; // réalisé/attendu
-      row["%V"+k] = pct;                       // entier
-    });
-  });
-  return row;
-}
-
+// Compact par tranches : Bk = "réalisé/attendu" (sans %V*), avec bornage
 function buildScanProfRow_NoPct(rec){
-  const row = buildRowBaseForQR(rec);
-  let k = 0;
-  (rec.courses || []).forEach(c=>{
-    (c.parts || []).forEach(p=>{
-      k += 1;
-      row["B"+k] = `${p.actual}/${p.target}`;
+  const row = buildScanProfRow_Strict(rec);
+  let k=0, MAX_TRANCHES=24; // ajuste si besoin
+  (rec.courses||[]).forEach(c=>{
+    (c.parts||[]).forEach(p=>{
+      k++;
+      if (k<=MAX_TRANCHES) row["B"+k] = `${p.actual}/${p.target}`;
     });
   });
+  if (k>MAX_TRANCHES) row["B_rest"] = k - MAX_TRANCHES; // info: tranches non encodées
   return row;
 }
 
-function buildScanProfRow_Strict(rec){
-  // Strict = seulement les 6 champs de base (+ Séance)
-  return buildRowBaseForQR(rec);
+// Ultra strict (clés ultra-courtes) pour forcer le passage si nécessaire
+// mêmes infos que "strict", mais en N,P,C,S,V,Se
+function buildScanProfRow_UltraStrict(rec){
+  return {
+    "N": _clean((rec.runner?.nom||"").toUpperCase(), 16),
+    "P": _clean(rec.runner?.prenom||"", 16),
+    "C": _clean(rec.runner?.classe||"", 8),
+    "S": _clean(rec.runner?.sexe||"", 1),
+    "V": Number(rec.runner?.vma||0),
+    "Se": _isoDateOrToday(rec?.seanceISO)
+  };
 }
 
+// Encapsuler 1 élève dans un tableau JSON (format attendu par ScanProf)
 function payloadOneRow(rowObj){
-  // ScanProf attend un tableau JSON : 1 (ou 2) objets
-  // Ici : 1 élève par QR pour limiter la taille
-  return JSON.stringify([rowObj]);
+  return JSON.stringify([rowObj]); // compact, sans espaces
 }
 
 /* --------------------------
-   DIAGNOSTIC (console)
+   MINI DIAGNOSTIC à l'écran
 --------------------------- */
-function _diagQR(rec){
-  try{
-    const base = buildRowBaseForQR(rec);
-    const strict = payloadOneRow(base);
-    console.log("[QR] strict length:", strict.length, strict);
-
-    const full = payloadOneRow(buildScanProfRow_Full(rec));
-    console.log("[QR] full length:", full.length);
-
-    const nopct = payloadOneRow(buildScanProfRow_NoPct(rec));
-    console.log("[QR] noPct length:", nopct.length);
-
-    // Compter les tranches
-    let k = 0;
-    (rec.courses||[]).forEach(c=> (c.parts||[]).forEach(()=> k++));
-    console.log("[QR] tranches (k):", k);
-  }catch(err){
-    console.log("[QR] diag error:", err);
+function showDiagUnderQR(txt){
+  const id="qrDiag";
+  let box=document.getElementById(id);
+  if(!box){
+    box=document.createElement("div");
+    box.id=id;
+    box.style.fontFamily="monospace";
+    box.style.fontSize="12px";
+    box.style.marginTop="8px";
+    qrFull.parentNode.insertBefore(box, qrFull.nextSibling);
   }
+  box.textContent = txt;
 }
 
 /* --------------------------
    Génération QR + Fallback
 --------------------------- */
-function makeQR(text){
-  qrFull.innerHTML = "";
-  new QRCode(qrFull, {
-    text,
-    width: 640,
-    height: 640,
-    colorDark: "#000000",
-    colorLight: "#ffffff",
-    // Pour maximiser la capacité, on force le niveau L
-    correctLevel: QRCode.CorrectLevel.L
-  });
-}
-
 function showQRFallback(rec){
   ensureQRCodeLib(()=>{
-    // Diagnostic console (ne change rien au QR)
-    _diagQR(rec);
-
-    // 1) FULL (Bk + %Vk)
-    try{
-      const pFull = payloadOneRow(buildScanProfRow_Full(rec));
-      makeQR(pFull);
-      if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
-      return;
-    }catch(e1){
-      const m1 = e1?.message || String(e1||"");
-      // Si ce n'est pas un overflow, on remonte l'erreur
-      if (!/code length overflow/i.test(m1)) { alert("Erreur QR (full): " + m1); return; }
-    }
-
-    // 2) NoPct (Bk uniquement)
+    // 1) noPct : Bk sans %V* (capacité ++)
     try{
       const pNo = payloadOneRow(buildScanProfRow_NoPct(rec));
-      makeQR(pNo);
-      if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
-      alert("QR compact (sans %VMA) pour réduire la taille.");
+      qrFull.innerHTML = "";
+      new QRCode(qrFull, { text:pNo, width:640, height:640, colorDark:"#000", colorLight:"#fff", correctLevel: QRCode.CorrectLevel.L });
+      if (modal){ modal.classList.add("show"); modal.style.display='block'; }
+      showDiagUnderQR(`noPct length=${pNo.length}`);
       return;
-    }catch(e2){
-      const m2 = e2?.message || String(e2||"");
-      if (!/code length overflow/i.test(m2)) { alert("Erreur QR (noPct): " + m2); return; }
+    }catch(eNo){
+      // on tente l'étape suivante
     }
 
-    // 3) Strict (6 champs de base + Séance)
+    // 2) strict : 6 champs de base (Nom, Prénom, Classe, Sexe, VMA, Séance)
     try{
       const pStrict = payloadOneRow(buildScanProfRow_Strict(rec));
-      makeQR(pStrict);
-      if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
-      alert("QR strict (champs essentiels) — le payload détaillé dépassait la taille.");
+      qrFull.innerHTML = "";
+      new QRCode(qrFull, { text:pStrict, width:640, height:640, colorDark:"#000", colorLight:"#fff", correctLevel: QRCode.CorrectLevel.L });
+      if (modal){ modal.classList.add("show"); modal.style.display='block'; }
+      showDiagUnderQR(`strict length=${pStrict.length}`);
       return;
-    }catch(e3){
-      alert("Erreur QR (strict): " + (e3?.message || e3));
+    }catch(eS){
+      // étape suivante si nécessaire
+    }
+
+    // 3) ultraStrict : mêmes infos que strict, mais clés ultra courtes
+    try{
+      const pUltra = payloadOneRow(buildScanProfRow_UltraStrict(rec));
+      qrFull.innerHTML = "";
+      new QRCode(qrFull, { text:pUltra, width:640, height:640, colorDark:"#000", colorLight:"#fff", correctLevel: QRCode.CorrectLevel.L });
+      if (modal){ modal.classList.add("show"); modal.style.display='block'; }
+      showDiagUnderQR(`ultraStrict length=${pUltra.length}`);
+      alert("QR ultra-compact généré (clés courtes).");
+      return;
+    }catch(eU){
+      alert("Toujours trop gros (même ultra-compact). Il existe probablement un champ de base anormalement long (Nom/Prénom/Classe).");
     }
   });
 }
