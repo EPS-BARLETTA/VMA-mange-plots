@@ -1,6 +1,8 @@
-// recap.js — QR fallback anti "code length overflow" + bilan correct
-const results = loadJSON("vmamp:results",[]);
-const $=(s)=>document.querySelector(s);
+// recap.js — Version complète : tableau récap + QR 100% ScanProf avec fallback taille
+
+// Données + helpers DOM (loadJSON est supposé défini ailleurs dans l'app)
+const results = loadJSON("vmamp:results", []);
+const $ = (s) => document.querySelector(s);
 
 const recapTables = $("#recapTables");
 const qrButtons   = $("#qrButtons");
@@ -20,18 +22,19 @@ function ensureQRCodeLib(callback){
 
 // ---- agrégats calculés sur le RÉALISÉ ----
 function computeAgg(rec){
-  const spacing = rec.spacing_m || 12.5;
+  const spacing = rec.spacing_m || 12.5; // espacement entre plots en mètres
   let totalPlots = 0;
   let totalSec   = 0;
   let blocks_total = 0;
   let blocks_ok    = 0;
 
-  rec.courses.forEach(c=>{
-    c.parts.forEach(p=>{
-      totalPlots += p.actual;   // réalisé
-      totalSec   += 90;
+  (rec.courses || []).forEach(c=>{
+    (c.parts || []).forEach(p=>{
+      const actual = Number(p.actual || 0);
+      totalPlots  += actual; // réalisé
+      totalSec    += 90;     // chaque tranche = 1'30
       blocks_total += 1;
-      if(p.ok) blocks_ok += 1;
+      if (p.ok) blocks_ok += 1;
     });
   });
 
@@ -56,10 +59,16 @@ function makeRecapTable(rec, agg, label){
 
   const tbody = document.createElement("tbody");
 
-  rec.courses.forEach(c=>{
-    const series = c.parts.map(p => `${p.actual}/${p.target}`).join(" • ");
+  (rec.courses || []).forEach(c=>{
+    const series = (c.parts || []).map(p => `${p.actual}/${p.target}`).join(" • ");
+    // calcule ok/total si non fourni
+    const ct = (c.parts || []).length;
+    const ok = (c.parts || []).reduce((n,p)=> n + (p.ok?1:0), 0);
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.label}</td><td>${c.pctVMA}%</td><td>${series}</td><td>${c.blocks_ok}/${c.blocks_total}</td>`;
+    tr.innerHTML = `<td>${c.label || ""}</td>
+                    <td>${c.pctVMA != null ? c.pctVMA : ""}%</td>
+                    <td>${series}</td>
+                    <td>${(c.blocks_ok ?? ok)}/${(c.blocks_total ?? ct)}</td>`;
     tbody.appendChild(tr);
   });
 
@@ -75,84 +84,68 @@ function makeRecapTable(rec, agg, label){
 }
 
 /* =========================
-   3 formats de QR JSON
+   BUILDERS 100% ScanProf
    ========================= */
 
-// 1) DÉTAILLÉ (lisible, comme demandé)
-function buildQRDetailed(rec, agg){
-  const obj = {
-    nom: rec.runner.nom,
-    prenom: rec.runner.prenom,
-    classe: rec.runner.classe,
-    sexe: rec.runner.sexe || "M",
-    distance: agg.distance,
-    vitesse: agg.vitesse,
-    vma: rec.runner.vma,
-    espacement_m: agg.spacing,
-    tol_kmh: (agg.spacing===12.5)? 0.5 : 0
+// Construit UNE ligne (un élève) au format attendu par ScanProf
+function buildScanProfRow(rec) {
+  // Séance ISO (YYYY-MM-DD) si dispo, sinon aujourd'hui
+  const seanceISO = rec?.seanceISO || (new Date()).toISOString().slice(0,10);
+
+  const row = {
+    "Nom": (rec.runner.nom || "").toUpperCase(),
+    "Prénom": rec.runner.prenom || "",
+    "Classe": rec.runner.classe || "",
+    "Sexe": rec.runner.sexe || "",
+    "VMA": Number(rec.runner.vma || 0),
+    "Séance": seanceISO
   };
-  rec.courses.forEach((c,ci)=>{
-    const i = ci+1;
-    obj[`%VMA C${i}`] = c.pctVMA;
-    const dur = (c.label.split("@")[0]||"").trim();
-    obj[`Durée C${i}`] = dur;
-    c.parts.forEach((p,pi)=>{
-      const j = pi+1;
-      const delta = p.diff;
-      const unit  = Math.abs(delta)===1 ? "plot" : "plots";
-      const txt   = `${p.actual}/${p.target} (${delta===0?"0": (delta>0? "+"+delta: ""+delta)} ${unit})`;
-      obj[`C${i}-1:30 #${j}`] = txt;
+
+  // Aplatir les tranches 1'30 : B1, B2... et %V1, %V2...
+  // Numérotation sur l'ensemble des courses
+  let k = 0;
+  (rec.courses || []).forEach(c => {
+    const pct = Math.round(Number(c.pctVMA || 0)); // % pour la course (appliqué à ses tranches)
+    (c.parts || []).forEach(p => {
+      k += 1;
+      const actual = (p.actual != null) ? p.actual : "";
+      const target = (p.target != null) ? p.target : "";
+      row["B"+k]  = `${actual}/${target}`; // "réalisé/attendu"
+      row["%V"+k] = pct;                   // entier, ex. 83
     });
-    obj[`C${i} OK`]    = c.blocks_ok;
-    obj[`C${i} Total`] = c.blocks_total;
   });
-  obj["OK total"]    = agg.blocks_ok;
-  obj["Blocs total"] = agg.blocks_total;
-  return obj;
+
+  return row;
 }
 
-// 2) COMPACT (clés courtes + tranches condensées) => bien plus petit
-function buildQRCompact(rec, agg){
-  const obj = {
-    nom: rec.runner.nom,
-    prenom: rec.runner.prenom,
-    classe: rec.runner.classe,
-    sexe: rec.runner.sexe || "M",
-    distance: agg.distance,
-    vitesse: agg.vitesse,
-    vma: rec.runner.vma
-    // on ne met pas les champs annexes pour gagner de la place
-  };
-  rec.courses.forEach((c,ci)=>{
-    const i = ci+1;
-    const dur = (c.label.split("@")[0]||"").trim();
-    // PCi = pourcentage VMA (nombre)
-    obj[`PC${i}`] = c.pctVMA;
-    // Di = durée "MM:SS"
-    obj[`D${i}`]  = dur;
-    // Si = tranches condensées "a/b|a/b|a/b"
-    obj[`S${i}`]  = c.parts.map(p => `${p.actual}/${p.target}`).join("|");
-    // Oi = "ok/total"
-    obj[`O${i}`]  = `${c.blocks_ok}/${c.blocks_total}`;
+// Version "moins bavarde": on retire les %V* (gagne beaucoup d'octets)
+function buildScanProfRow_NoPct(rec) {
+  const base = buildScanProfRow(rec);
+  Object.keys(base).forEach(k => {
+    if (k.startsWith("%V")) delete base[k];
   });
-  return obj;
+  return base;
 }
 
-// 3) STRICT (seulement les 7 champs ScanProf obligatoires)
-function buildQRStrict(rec, agg){
+// Version "strict": seulement les champs de base
+function buildScanProfRow_Strict(rec) {
   return {
-    nom: rec.runner.nom,
-    prenom: rec.runner.prenom,
-    classe: rec.runner.classe,
-    sexe: rec.runner.sexe || "M",
-    distance: agg.distance,
-    vitesse: agg.vitesse,
-    vma: rec.runner.vma
+    "Nom": (rec.runner.nom || "").toUpperCase(),
+    "Prénom": rec.runner.prenom || "",
+    "Classe": rec.runner.classe || "",
+    "Sexe": rec.runner.sexe || "",
+    "VMA": Number(rec.runner.vma || 0),
+    "Séance": rec?.seanceISO || (new Date()).toISOString().slice(0,10)
   };
+}
+
+// Payload = tableau JSON (ScanProf accepte 1 ou 2 objets ; ici 1/QR)
+function buildScanProfPayload(rowObj) {
+  return JSON.stringify([rowObj]); // compact (pas d'espaces)
 }
 
 /* =========================
-   Génération QR avec Fallback
+   Génération du QR + Fallback
    ========================= */
 
 function makeQR(text, correctLevel){
@@ -167,34 +160,37 @@ function makeQR(text, correctLevel){
   });
 }
 
-function showQRFallback(rec, agg){
+function showQRFallback(rec){
   ensureQRCodeLib(()=>{
+    // 1) FULL: Bk + %Vk (Correction M)
     try {
-      // 1) DÉTAILLÉ (M)
-      const detailed = JSON.stringify([buildQRDetailed(rec, agg)]);
-      makeQR(detailed, QRCode.CorrectLevel.M);
-      modal.classList.add("show");
+      const payloadFull = buildScanProfPayload(buildScanProfRow(rec));
+      makeQR(payloadFull, QRCode.CorrectLevel.M);
+      if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
       return;
     } catch(e1){
-      if(!/code length overflow/i.test(String(e1))) { alert("Erreur QR: " + e1.message); return; }
-      // 2) COMPACT (L) — beaucoup plus de capacité
+      // si le générateur remonte une erreur de taille
+      const msg1 = (e1 && e1.message) ? e1.message : String(e1 || "");
+      if (!/code length overflow/i.test(msg1)) { alert("Erreur QR: " + msg1); return; }
+      // 2) NOPCT: Bk uniquement (Correction L)
       try{
-        const compact = JSON.stringify([buildQRCompact(rec, agg)]);
-        makeQR(compact, QRCode.CorrectLevel.L);
-        modal.classList.add("show");
-        alert("QR compact affiché (payload réduit pour éviter la limite de taille).");
+        const payloadNoPct = buildScanProfPayload(buildScanProfRow_NoPct(rec));
+        makeQR(payloadNoPct, QRCode.CorrectLevel.L);
+        if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
+        alert("QR compact sans %VMA (payload allégé).");
         return;
       }catch(e2){
-        if(!/code length overflow/i.test(String(e2))) { alert("Erreur QR: " + e2.message); return; }
-        // 3) STRICT (L) — 7 champs only
+        const msg2 = (e2 && e2.message) ? e2.message : String(e2 || "");
+        if (!/code length overflow/i.test(msg2)) { alert("Erreur QR: " + msg2); return; }
+        // 3) STRICT: champs de base (Correction L)
         try{
-          const strict = JSON.stringify([buildQRStrict(rec, agg)]);
-          makeQR(strict, QRCode.CorrectLevel.L);
-          modal.classList.add("show");
-          alert("QR strict affiché (seulement les champs ScanProf) — le QR détaillé était trop volumineux.");
+          const payloadStrict = buildScanProfPayload(buildScanProfRow_Strict(rec));
+          makeQR(payloadStrict, QRCode.CorrectLevel.L);
+          if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
+          alert("QR strict (champs de base) — le payload détaillé dépassait la taille.");
           return;
         }catch(e3){
-          alert("Erreur QR (strict): " + e3.message);
+          alert("Erreur QR (strict): " + (e3?.message || e3));
         }
       }
     }
@@ -204,18 +200,18 @@ function showQRFallback(rec, agg){
 // Fermer la modale
 closeBtn?.addEventListener("click", ()=>{
   modal?.classList?.remove("show");
-  if(modal) modal.style.display = 'none';
+  if (modal) modal.style.display = 'none';
 });
 
 // ---- Init : construit le tableau et les boutons QR ----
 (function init(){
   if(!Array.isArray(results) || results.length===0){
-    recapTables.innerHTML = "<div class='text-red-600'>Aucun résultat.</div>";
+    if (recapTables) recapTables.innerHTML = "<div class='text-red-600'>Aucun résultat.</div>";
     return;
   }
 
   results.forEach((rec,idx)=>{
-    const label = rec.runnerKey==="A" ? "Élève A" : "Élève B";
+    const label = rec.runnerKey==="A" ? "Élève A" : (rec.runnerKey==="B" ? "Élève B" : `Élève ${idx+1}`);
     const agg   = computeAgg(rec);
 
     // Tableau
@@ -227,19 +223,18 @@ closeBtn?.addEventListener("click", ()=>{
     card.innerHTML = `
       <h3 class="text-lg font-bold mb-2">${label} — ${rec.runner.prenom} ${rec.runner.nom}</h3>
       <div class="grid grid-cols-1 gap-2">
-        <button class="btn btn-blue w-full" data-full="${idx}">QR plein écran (ScanProf + détails)</button>
+        <button class="btn btn-blue w-full" data-full="${idx}">QR plein écran (ScanProf)</button>
       </div>
     `;
     qrButtons.appendChild(card);
   });
 
-  // Délégation de clic fiable
+  // Délégation de clic (génère un QR pour l'élève ciblé)
   qrButtons.addEventListener("click",(e)=>{
     const btn = e.target.closest("[data-full]");
     if(!btn) return;
     const idx = parseInt(btn.getAttribute("data-full"),10);
     const rec = results[idx];
-    const agg = computeAgg(rec);
-    showQRFallback(rec, agg);
+    showQRFallback(rec);
   });
 })();
