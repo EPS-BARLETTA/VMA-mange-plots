@@ -1,6 +1,9 @@
-// recap.js — Version complète : tableau récap + QR 100% ScanProf avec fallback taille
+// recap.js — Tableau récap + QR ScanProf (fallback anti-overflow + diagnostic)
 
-// Données + helpers DOM (loadJSON est supposé défini ailleurs dans l'app)
+/* --------------------------
+   Données + helpers DOM
+--------------------------- */
+// loadJSON est supposé défini ailleurs dans l'app
 const results = loadJSON("vmamp:results", []);
 const $ = (s) => document.querySelector(s);
 
@@ -10,29 +13,46 @@ const modal       = $("#qrModal");
 const closeBtn    = $("#closeModal");
 const qrFull      = $("#qrFull");
 
-// --- charge qrcodejs si manquant ---
+/* --------------------------
+   Librairie QRCode (qrcodejs)
+--------------------------- */
 function ensureQRCodeLib(callback){
   if (window.QRCode) { callback(); return; }
   const s = document.createElement('script');
   s.src = "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js";
   s.onload = callback;
-  s.onerror = () => alert("Impossible de charger la librairie QRCode. Vérifie ta connexion.");
+  s.onerror = () => alert("Impossible de charger la librairie QRCode (qrcodejs). Vérifie la connexion.");
   document.head.appendChild(s);
 }
 
-// ---- agrégats calculés sur le RÉALISÉ ----
+/* --------------------------
+   Outils utilitaires (QR uniquement)
+   - on NE change PAS l'affichage, seulement le contenu du QR
+--------------------------- */
+function stripDiacritics(str){
+  try { return (str || "").normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  catch { return str || ""; }
+}
+function sanitizeText(str, maxLen){
+  const s = stripDiacritics(String(str || ""));
+  return (maxLen && s.length > maxLen) ? s.slice(0, maxLen) : s;
+}
+function isoDateOrToday(s){
+  if (typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  try { return new Date().toISOString().slice(0,10); } catch { return ""; }
+}
+
+/* --------------------------
+   Agrégats calculés sur le RÉALISÉ (affichage)
+--------------------------- */
 function computeAgg(rec){
-  const spacing = rec.spacing_m || 12.5; // espacement entre plots en mètres
-  let totalPlots = 0;
-  let totalSec   = 0;
-  let blocks_total = 0;
-  let blocks_ok    = 0;
+  const spacing = rec.spacing_m || 12.5; // m entre plots
+  let totalPlots = 0, totalSec = 0, blocks_total = 0, blocks_ok = 0;
 
   (rec.courses || []).forEach(c=>{
     (c.parts || []).forEach(p=>{
-      const actual = Number(p.actual || 0);
-      totalPlots  += actual; // réalisé
-      totalSec    += 90;     // chaque tranche = 1'30
+      totalPlots  += Number(p.actual || 0);   // réalisé
+      totalSec    += 90;                      // 1'30 par tranche
       blocks_total += 1;
       if (p.ok) blocks_ok += 1;
     });
@@ -43,7 +63,9 @@ function computeAgg(rec){
   return { spacing, distance, vitesse, blocks_total, blocks_ok };
 }
 
-// ---- tableau récap : une seule valeur "réalisé/attendu" par tranche ----
+/* --------------------------
+   Tableau récapitulatif (affichage)
+--------------------------- */
 function makeRecapTable(rec, agg, label){
   const wrap = document.createElement("div");
   wrap.innerHTML = `<h3 class="text-lg font-bold mb-2">${label} — ${rec.runner.prenom} ${rec.runner.nom} (${rec.runner.classe})</h3>`;
@@ -61,14 +83,14 @@ function makeRecapTable(rec, agg, label){
 
   (rec.courses || []).forEach(c=>{
     const series = (c.parts || []).map(p => `${p.actual}/${p.target}`).join(" • ");
-    // calcule ok/total si non fourni
     const ct = (c.parts || []).length;
     const ok = (c.parts || []).reduce((n,p)=> n + (p.ok?1:0), 0);
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${c.label || ""}</td>
-                    <td>${c.pctVMA != null ? c.pctVMA : ""}%</td>
-                    <td>${series}</td>
-                    <td>${(c.blocks_ok ?? ok)}/${(c.blocks_total ?? ct)}</td>`;
+    tr.innerHTML = `
+      <td>${c.label || ""}</td>
+      <td>${c.pctVMA != null ? c.pctVMA : ""}%</td>
+      <td>${series}</td>
+      <td>${(c.blocks_ok ?? ok)}/${(c.blocks_total ?? ct)}</td>`;
     tbody.appendChild(tr);
   });
 
@@ -83,72 +105,95 @@ function makeRecapTable(rec, agg, label){
   recapTables.appendChild(wrap);
 }
 
-/* =========================
-   BUILDERS 100% ScanProf
-   ========================= */
+/* --------------------------
+   BUILDERS QR 100% ScanProf
+   - 1 élève par QR : payload = [ { ... } ]
+   - Clés plates : Nom, Prénom, Classe, Sexe, VMA, Séance, B1..Bn, %V1..%Vn
+--------------------------- */
+function buildRowBaseForQR(rec){
+  // Nettoyage léger pour le QR (accents/longueurs) — l'affichage à l'écran n'est PAS modifié
+  const nom    = sanitizeText((rec.runner?.nom || "").toUpperCase(), 32);
+  const prenom = sanitizeText(rec.runner?.prenom || "", 32);
+  const classe = sanitizeText(rec.runner?.classe || "", 24);
+  const sexe   = sanitizeText(rec.runner?.sexe || "", 1); // "M" ou "F" en général
+  const vma    = Number(rec.runner?.vma || 0);
+  const seance = isoDateOrToday(rec?.seanceISO);
 
-// Construit UNE ligne (un élève) au format attendu par ScanProf
-function buildScanProfRow(rec) {
-  // Séance ISO (YYYY-MM-DD) si dispo, sinon aujourd'hui
-  const seanceISO = rec?.seanceISO || (new Date()).toISOString().slice(0,10);
-
-  const row = {
-    "Nom": (rec.runner.nom || "").toUpperCase(),
-    "Prénom": rec.runner.prenom || "",
-    "Classe": rec.runner.classe || "",
-    "Sexe": rec.runner.sexe || "",
-    "VMA": Number(rec.runner.vma || 0),
-    "Séance": seanceISO
+  return {
+    "Nom": nom,
+    "Prénom": prenom,
+    "Classe": classe,
+    "Sexe": sexe,
+    "VMA": vma,
+    "Séance": seance
   };
+}
 
-  // Aplatir les tranches 1'30 : B1, B2... et %V1, %V2...
-  // Numérotation sur l'ensemble des courses
+function buildScanProfRow_Full(rec){
+  const row = buildRowBaseForQR(rec);
   let k = 0;
-  (rec.courses || []).forEach(c => {
-    const pct = Math.round(Number(c.pctVMA || 0)); // % pour la course (appliqué à ses tranches)
-    (c.parts || []).forEach(p => {
+  (rec.courses || []).forEach(c=>{
+    const pct = Math.round(Number(c.pctVMA || 0));
+    (c.parts || []).forEach(p=>{
       k += 1;
-      const actual = (p.actual != null) ? p.actual : "";
-      const target = (p.target != null) ? p.target : "";
-      row["B"+k]  = `${actual}/${target}`; // "réalisé/attendu"
-      row["%V"+k] = pct;                   // entier, ex. 83
+      row["B"+k]  = `${p.actual}/${p.target}`; // réalisé/attendu
+      row["%V"+k] = pct;                       // entier
     });
   });
-
   return row;
 }
 
-// Version "moins bavarde": on retire les %V* (gagne beaucoup d'octets)
-function buildScanProfRow_NoPct(rec) {
-  const base = buildScanProfRow(rec);
-  Object.keys(base).forEach(k => {
-    if (k.startsWith("%V")) delete base[k];
+function buildScanProfRow_NoPct(rec){
+  const row = buildRowBaseForQR(rec);
+  let k = 0;
+  (rec.courses || []).forEach(c=>{
+    (c.parts || []).forEach(p=>{
+      k += 1;
+      row["B"+k] = `${p.actual}/${p.target}`;
+    });
   });
-  return base;
+  return row;
 }
 
-// Version "strict": seulement les champs de base
-function buildScanProfRow_Strict(rec) {
-  return {
-    "Nom": (rec.runner.nom || "").toUpperCase(),
-    "Prénom": rec.runner.prenom || "",
-    "Classe": rec.runner.classe || "",
-    "Sexe": rec.runner.sexe || "",
-    "VMA": Number(rec.runner.vma || 0),
-    "Séance": rec?.seanceISO || (new Date()).toISOString().slice(0,10)
-  };
+function buildScanProfRow_Strict(rec){
+  // Strict = seulement les 6 champs de base (+ Séance)
+  return buildRowBaseForQR(rec);
 }
 
-// Payload = tableau JSON (ScanProf accepte 1 ou 2 objets ; ici 1/QR)
-function buildScanProfPayload(rowObj) {
-  return JSON.stringify([rowObj]); // compact (pas d'espaces)
+function payloadOneRow(rowObj){
+  // ScanProf attend un tableau JSON : 1 (ou 2) objets
+  // Ici : 1 élève par QR pour limiter la taille
+  return JSON.stringify([rowObj]);
 }
 
-/* =========================
-   Génération du QR + Fallback
-   ========================= */
+/* --------------------------
+   DIAGNOSTIC (console)
+--------------------------- */
+function _diagQR(rec){
+  try{
+    const base = buildRowBaseForQR(rec);
+    const strict = payloadOneRow(base);
+    console.log("[QR] strict length:", strict.length, strict);
 
-function makeQR(text, correctLevel){
+    const full = payloadOneRow(buildScanProfRow_Full(rec));
+    console.log("[QR] full length:", full.length);
+
+    const nopct = payloadOneRow(buildScanProfRow_NoPct(rec));
+    console.log("[QR] noPct length:", nopct.length);
+
+    // Compter les tranches
+    let k = 0;
+    (rec.courses||[]).forEach(c=> (c.parts||[]).forEach(()=> k++));
+    console.log("[QR] tranches (k):", k);
+  }catch(err){
+    console.log("[QR] diag error:", err);
+  }
+}
+
+/* --------------------------
+   Génération QR + Fallback
+--------------------------- */
+function makeQR(text){
   qrFull.innerHTML = "";
   new QRCode(qrFull, {
     text,
@@ -156,54 +201,64 @@ function makeQR(text, correctLevel){
     height: 640,
     colorDark: "#000000",
     colorLight: "#ffffff",
-    correctLevel // QRCode.CorrectLevel.L/M/Q/H
+    // Pour maximiser la capacité, on force le niveau L
+    correctLevel: QRCode.CorrectLevel.L
   });
 }
 
 function showQRFallback(rec){
   ensureQRCodeLib(()=>{
-    // 1) FULL: Bk + %Vk (Correction M)
-    try {
-      const payloadFull = buildScanProfPayload(buildScanProfRow(rec));
-      makeQR(payloadFull, QRCode.CorrectLevel.M);
+    // Diagnostic console (ne change rien au QR)
+    _diagQR(rec);
+
+    // 1) FULL (Bk + %Vk)
+    try{
+      const pFull = payloadOneRow(buildScanProfRow_Full(rec));
+      makeQR(pFull);
       if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
       return;
-    } catch(e1){
-      // si le générateur remonte une erreur de taille
-      const msg1 = (e1 && e1.message) ? e1.message : String(e1 || "");
-      if (!/code length overflow/i.test(msg1)) { alert("Erreur QR: " + msg1); return; }
-      // 2) NOPCT: Bk uniquement (Correction L)
-      try{
-        const payloadNoPct = buildScanProfPayload(buildScanProfRow_NoPct(rec));
-        makeQR(payloadNoPct, QRCode.CorrectLevel.L);
-        if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
-        alert("QR compact sans %VMA (payload allégé).");
-        return;
-      }catch(e2){
-        const msg2 = (e2 && e2.message) ? e2.message : String(e2 || "");
-        if (!/code length overflow/i.test(msg2)) { alert("Erreur QR: " + msg2); return; }
-        // 3) STRICT: champs de base (Correction L)
-        try{
-          const payloadStrict = buildScanProfPayload(buildScanProfRow_Strict(rec));
-          makeQR(payloadStrict, QRCode.CorrectLevel.L);
-          if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
-          alert("QR strict (champs de base) — le payload détaillé dépassait la taille.");
-          return;
-        }catch(e3){
-          alert("Erreur QR (strict): " + (e3?.message || e3));
-        }
-      }
+    }catch(e1){
+      const m1 = e1?.message || String(e1||"");
+      // Si ce n'est pas un overflow, on remonte l'erreur
+      if (!/code length overflow/i.test(m1)) { alert("Erreur QR (full): " + m1); return; }
+    }
+
+    // 2) NoPct (Bk uniquement)
+    try{
+      const pNo = payloadOneRow(buildScanProfRow_NoPct(rec));
+      makeQR(pNo);
+      if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
+      alert("QR compact (sans %VMA) pour réduire la taille.");
+      return;
+    }catch(e2){
+      const m2 = e2?.message || String(e2||"");
+      if (!/code length overflow/i.test(m2)) { alert("Erreur QR (noPct): " + m2); return; }
+    }
+
+    // 3) Strict (6 champs de base + Séance)
+    try{
+      const pStrict = payloadOneRow(buildScanProfRow_Strict(rec));
+      makeQR(pStrict);
+      if (modal){ modal.classList.add("show"); modal.style.display = 'block'; }
+      alert("QR strict (champs essentiels) — le payload détaillé dépassait la taille.");
+      return;
+    }catch(e3){
+      alert("Erreur QR (strict): " + (e3?.message || e3));
     }
   });
 }
 
-// Fermer la modale
+/* --------------------------
+   Modale : fermer
+--------------------------- */
 closeBtn?.addEventListener("click", ()=>{
   modal?.classList?.remove("show");
   if (modal) modal.style.display = 'none';
 });
 
-// ---- Init : construit le tableau et les boutons QR ----
+/* --------------------------
+   Init : tableau + boutons QR
+--------------------------- */
 (function init(){
   if(!Array.isArray(results) || results.length===0){
     if (recapTables) recapTables.innerHTML = "<div class='text-red-600'>Aucun résultat.</div>";
@@ -211,13 +266,16 @@ closeBtn?.addEventListener("click", ()=>{
   }
 
   results.forEach((rec,idx)=>{
-    const label = rec.runnerKey==="A" ? "Élève A" : (rec.runnerKey==="B" ? "Élève B" : `Élève ${idx+1}`);
-    const agg   = computeAgg(rec);
+    const label = rec.runnerKey==="A" ? "Élève A"
+                : rec.runnerKey==="B" ? "Élève B"
+                : `Élève ${idx+1}`;
 
-    // Tableau
+    const agg = computeAgg(rec);
+
+    // Tableau élève
     makeRecapTable(rec, agg, label);
 
-    // Carte + bouton QR (un par élève)
+    // Carte + bouton QR
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
@@ -229,7 +287,7 @@ closeBtn?.addEventListener("click", ()=>{
     qrButtons.appendChild(card);
   });
 
-  // Délégation de clic (génère un QR pour l'élève ciblé)
+  // Délégation de clic (un QR = un élève)
   qrButtons.addEventListener("click",(e)=>{
     const btn = e.target.closest("[data-full]");
     if(!btn) return;
