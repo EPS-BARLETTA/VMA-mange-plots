@@ -1,5 +1,5 @@
-// recap.js — Tableau récap + QR compact borné (1 élève / QR) compatible ScanProf
-// Schéma QR: [{ nom, prenom, classe, sexe, vma, s1, o1, (pc1?), s2, o2, (pc2?), s3, o3, (pc3?) }]
+// recap.js — QR compact FR (Pourcentage/S*/Projet P*) + QR centré + normalisation "Classe" + bornes anti-overflow
+// Schéma QR: [{ nom, prenom, classe, sexe, vma, "Pourcentage 1", "S1", "Projet P1", ... (jusqu'à 3 courses) }]
 
 // =====================
 // Données + helpers DOM
@@ -47,11 +47,44 @@ function computeAgg(rec){
 }
 
 // ===============================
+// Normalisation + nettoyage
+// ===============================
+
+// Normalise "5ème A" / "5 eme a" / "5 a" / "5A" => "5A"
+function normalizeClasse(raw){
+  const s = String(raw || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // retire les accents
+    .replace(/\s+/g, " ").trim();
+  // nombre + (optionnel) e/eme/ème + (optionnel) lettre
+  const m = s.match(/(\d{1,2})\s*(?:e|eme|eme|eme|ème)?\s*([a-zA-Z])?/i);
+  if (!m) return s.toUpperCase();
+  const num    = m[1];
+  const letter = (m[2] || "").toUpperCase();
+  return (num + letter).toUpperCase(); // "5A" ou "5"
+}
+
+// Caps durs sur les textes & longueurs
+const CAPS = {
+  NOM: 18,          // ex. "DUPONT"
+  PRENOM: 18,       // ex. "LUCAS"
+  CLASSE: 3,        // "5A", "4C", "2"
+  MAX_S_LEN: 180,   // longueur max pour S* = "a/b|a/b|..."
+  OVERFLOW_SEUIL: 1000 // si payload > seuil, on retire les "Pourcentage *"
+};
+
+// Nettoyage + cap
+function cleanCap(s, max){
+  const t = String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  return (max && t.length > max) ? t.slice(0, max) : t;
+}
+
+// ===============================
 // Tableau récapitulatif (affichage)
 // ===============================
 function makeRecapTable(rec, agg, label){
+  const classeNorm = normalizeClasse(rec.runner.classe);
   const wrap = document.createElement("div");
-  wrap.innerHTML = `<h3 class="text-lg font-bold mb-2">${label} — ${rec.runner.prenom} ${rec.runner.nom} (${rec.runner.classe})</h3>`;
+  wrap.innerHTML = `<h3 class="text-lg font-bold mb-2">${label} — ${rec.runner.prenom} ${rec.runner.nom} (${classeNorm})</h3>`;
 
   const table = document.createElement("table");
   table.className = "results w-full";
@@ -89,33 +122,18 @@ function makeRecapTable(rec, agg, label){
 }
 
 // ========================================
-// QR compact par course + bornes strictes
+// QR compact FR par course + bornes strictes
 // ========================================
 
-// 1 élève / QR (bornage taille)
+// 1 élève / QR (robuste)
 const USE_TWO_STUDENTS = false;
 
-// Caps durs sur les textes & longueurs des chaînes s1/s2/s3
-const CAPS = {
-  NOM: 18,          // ex. "DUPONT"
-  PRENOM: 18,       // ex. "LUCAS"
-  CLASSE: 8,        // ex. "2A", "4B"
-  MAX_S_LEN: 180,   // longueur max d'une chaîne sN = "a/b|a/b|..."
-  OVERFLOW_SEUIL: 1000 // si payload > seuil, on retire pc1..3
-};
-
-// Nettoyage + cap
-function cleanCap(s, max){
-  const t = String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  return (max && t.length > max) ? t.slice(0, max) : t;
-}
-
-// Construit 1 élève compacté par course : s1/s2/s3 (tronqués), o1/o2/o3, pc1..pc3 optionnels
-function buildRowMP(rec){
+// Construit 1 élève compacté en FR : "Pourcentage 1", "S1", "Projet P1", etc.
+function buildRowFR(rec){
   const row = {
     nom:    cleanCap((rec?.runner?.nom||"").toUpperCase(), CAPS.NOM),
     prenom: cleanCap(rec?.runner?.prenom||"", CAPS.PRENOM),
-    classe: cleanCap(rec?.runner?.classe||"", CAPS.CLASSE),
+    classe: cleanCap(normalizeClasse(rec?.runner?.classe||""), CAPS.CLASSE),
     sexe:   cleanCap(rec?.runner?.sexe||"", 1),
     vma:    Number(rec?.runner?.vma||0)
   };
@@ -128,9 +146,9 @@ function buildRowMP(rec){
     const ct = parts.length;
     const ok = parts.reduce((n,p)=> n + (p.ok?1:0), 0);
 
-    row[`s${i}`]  = s;
-    row[`o${i}`]  = `${ok}/${ct}`;
-    row[`pc${i}`] = Math.round(Number(c?.pctVMA||0)); // on enlèvera plus tard si trop gros
+    row[`Pourcentage ${i}`] = Math.round(Number(c?.pctVMA||0));
+    row[`S${i}`]            = s;
+    row[`Projet P${i}`]     = `${ok}/${ct}`;
   });
 
   return row;
@@ -139,26 +157,41 @@ function buildRowMP(rec){
 // Emballe 1 élève dans un tableau JSON
 function buildPayloadOne(row){ return JSON.stringify([row]); }
 
-// Mini diagnostic sous le QR (longueur totale + tailles s1/s2/s3)
+// Mini diagnostic sous le QR (longueur + tailles S1/S2/S3)
 function showDiag(text){
   const id="qrDiag"; let box=document.getElementById(id);
   if(!box){
     box=document.createElement("div");
     box.id=id; box.style.fontFamily="monospace"; box.style.fontSize="12px"; box.style.marginTop="8px";
-    box.style.whiteSpace="pre-wrap";
+    box.style.whiteSpace="pre-wrap"; box.style.textAlign="center";
     qrFull.parentNode.insertBefore(box, qrFull.nextSibling);
   }
   box.textContent = text;
 }
 
-// Générateur QR (capacité max via niveau L)
+// Générateur QR (capacité max via niveau L) + centrage de la modale
 function renderQR(text){
+  // centre le conteneur de QR dans la modale
+  if (modal){
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+  }
+  if (qrFull){
+    qrFull.style.margin = '0 auto';
+    qrFull.style.display = 'block';
+  }
+
   qrFull.innerHTML = "";
   new QRCode(qrFull, {
     text, width: 640, height: 640,
     colorDark: "#000", colorLight: "#fff",
     correctLevel: QRCode.CorrectLevel.L
   });
+
+  // centre également la ligne de diag
+  const diag = document.getElementById('qrDiag');
+  if (diag) diag.style.textAlign = 'center';
 }
 
 // ======================
@@ -167,25 +200,29 @@ function renderQR(text){
 function showQRFallback(rec){
   ensureQRCodeLib(()=>{
     try{
-      // 1) construit la ligne compactée avec caps
-      const row = buildRowMP(rec);
+      // 1) construit la ligne FR compactée avec caps + classe normalisée
+      const row = buildRowFR(rec);
 
-      // 2) si le JSON est trop long, supprimer pc1..3 (gros gain)
+      // 2) si le JSON est trop long, supprimer "Pourcentage *" (gros gain)
       let payload = buildPayloadOne(row);
       if (payload.length > CAPS.OVERFLOW_SEUIL) {
-        delete row.pc1; delete row.pc2; delete row.pc3;
+        delete row["Pourcentage 1"];
+        delete row["Pourcentage 2"];
+        delete row["Pourcentage 3"];
         payload = buildPayloadOne(row);
       }
 
-      // 3) rendu QR
+      // 3) rendu QR (centré)
       renderQR(payload);
 
-      // 4) diagnostic : len total + tailles s1/s2/s3 + présence pc*
-      const s1 = (row.s1||"").length, s2 = (row.s2||"").length, s3 = (row.s3||"").length;
-      const pc1 = (row.pc1==null)?"-":row.pc1, pc2 = (row.pc2==null)?"-":row.pc2, pc3 = (row.pc3==null)?"-":row.pc3;
-      showDiag(`len=${payload.length} | s1=${s1} s2=${s2} s3=${s3} | pc1=${pc1} pc2=${pc2} pc3=${pc3}`);
+      // 4) diagnostic : len total + tailles S1/S2/S3 + présence Pourcentage *
+      const s1 = (row["S1"]||"").length, s2 = (row["S2"]||"").length, s3 = (row["S3"]||"").length;
+      const p1 = (row["Pourcentage 1"]==null)?"-":row["Pourcentage 1"];
+      const p2 = (row["Pourcentage 2"]==null)?"-":row["Pourcentage 2"];
+      const p3 = (row["Pourcentage 3"]==null)?"-":row["Pourcentage 3"];
+      showDiag(`len=${payload.length} | S1=${s1} S2=${s2} S3=${s3} | %1=${p1} %2=${p2} %3=${p3}`);
 
-      if (modal){ modal.classList.add("show"); modal.style.display='block'; }
+      if (modal){ modal.classList.add("show"); }
     }catch(e){
       alert("Erreur QR: " + (e?.message || e));
     }
@@ -216,7 +253,7 @@ closeBtn?.addEventListener("click", ()=>{
 
     const agg = computeAgg(rec);
 
-    // Tableau élève
+    // Tableau élève (classe affichée normalisée)
     makeRecapTable(rec, agg, label);
 
     // Carte + bouton QR
