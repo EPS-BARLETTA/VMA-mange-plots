@@ -1,5 +1,5 @@
-// recap.js — QR compact FR (Pourcentage/S*/Projet P*) + QR centré + normalisation "Classe" + bornes anti-overflow
-// Schéma QR: [{ nom, prenom, classe, sexe, vma, "Pourcentage 1", "S1", "Projet P1", ... (jusqu'à 3 courses) }]
+// recap.js — QR compact FR (%/P/S) + QR centré + classe normalisée + bornes anti-overflow
+// Schéma QR: [{ nom, prenom, classe, sexe, vma, "%1", "P1", "S1", "%2", "P2", "S2", "%3", "P3", "S3" }]
 
 // =====================
 // Données + helpers DOM
@@ -56,7 +56,7 @@ function normalizeClasse(raw){
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // retire les accents
     .replace(/\s+/g, " ").trim();
   // nombre + (optionnel) e/eme/ème + (optionnel) lettre
-  const m = s.match(/(\d{1,2})\s*(?:e|eme|eme|eme|ème)?\s*([a-zA-Z])?/i);
+  const m = s.match(/(\d{1,2})\s*(?:e|eme|ème)?\s*([a-zA-Z])?/i);
   if (!m) return s.toUpperCase();
   const num    = m[1];
   const letter = (m[2] || "").toUpperCase();
@@ -69,7 +69,7 @@ const CAPS = {
   PRENOM: 18,       // ex. "LUCAS"
   CLASSE: 3,        // "5A", "4C", "2"
   MAX_S_LEN: 180,   // longueur max pour S* = "a/b|a/b|..."
-  OVERFLOW_SEUIL: 1000 // si payload > seuil, on retire les "Pourcentage *"
+  OVERFLOW_SEUIL: 1000 // si payload > seuil, on retire les "%*"
 };
 
 // Nettoyage + cap
@@ -122,14 +122,14 @@ function makeRecapTable(rec, agg, label){
 }
 
 // ========================================
-// QR compact FR par course + bornes strictes
+// QR compact FR par course (% / P / S) + bornes strictes
 // ========================================
 
 // 1 élève / QR (robuste)
 const USE_TWO_STUDENTS = false;
 
-// Construit 1 élève compacté en FR : "Pourcentage 1", "S1", "Projet P1", etc.
-function buildRowFR(rec){
+// Construit 1 élève compacté : "%1", "P1", "S1" (puis 2,3). Les clés avec % sont valides en JSON.
+function buildRowPercentPS(rec){
   const row = {
     nom:    cleanCap((rec?.runner?.nom||"").toUpperCase(), CAPS.NOM),
     prenom: cleanCap(rec?.runner?.prenom||"", CAPS.PRENOM),
@@ -146,9 +146,10 @@ function buildRowFR(rec){
     const ct = parts.length;
     const ok = parts.reduce((n,p)=> n + (p.ok?1:0), 0);
 
-    row[`Pourcentage ${i}`] = Math.round(Number(c?.pctVMA||0));
-    row[`S${i}`]            = s;
-    row[`Projet P${i}`]     = `${ok}/${ct}`;
+    // Insertion dans l'ordre demandé : %i, Pi, Si
+    row[`%${i}`] = Math.round(Number(c?.pctVMA||0)); // pourcentage de VMA
+    row[`P${i}`] = `${ok}/${ct}`;                    // Projet (ok/total)
+    row[`S${i}`] = s;                                // Série des tranches
   });
 
   return row;
@@ -200,27 +201,27 @@ function renderQR(text){
 function showQRFallback(rec){
   ensureQRCodeLib(()=>{
     try{
-      // 1) construit la ligne FR compactée avec caps + classe normalisée
-      const row = buildRowFR(rec);
+      // 1) construit la ligne FR (%/P/S) avec caps + classe normalisée
+      const row = buildRowPercentPS(rec);
 
-      // 2) si le JSON est trop long, supprimer "Pourcentage *" (gros gain)
+      // 2) si le JSON est trop long, supprimer les "%*" (gros gain)
       let payload = buildPayloadOne(row);
       if (payload.length > CAPS.OVERFLOW_SEUIL) {
-        delete row["Pourcentage 1"];
-        delete row["Pourcentage 2"];
-        delete row["Pourcentage 3"];
+        delete row["%1"];
+        delete row["%2"];
+        delete row["%3"];
         payload = buildPayloadOne(row);
       }
 
       // 3) rendu QR (centré)
       renderQR(payload);
 
-      // 4) diagnostic : len total + tailles S1/S2/S3 + présence Pourcentage *
+      // 4) diagnostic : len total + tailles S1/S2/S3 + présence %*
       const s1 = (row["S1"]||"").length, s2 = (row["S2"]||"").length, s3 = (row["S3"]||"").length;
-      const p1 = (row["Pourcentage 1"]==null)?"-":row["Pourcentage 1"];
-      const p2 = (row["Pourcentage 2"]==null)?"-":row["Pourcentage 2"];
-      const p3 = (row["Pourcentage 3"]==null)?"-":row["Pourcentage 3"];
-      showDiag(`len=${payload.length} | S1=${s1} S2=${s2} S3=${s3} | %1=${p1} %2=${p2} %3=${p3}`);
+      const pcent1 = (row["%1"]==null)?"-":row["%1"];
+      const pcent2 = (row["%2"]==null)?"-":row["%2"];
+      const pcent3 = (row["%3"]==null)?"-":row["%3"];
+      showDiag(`len=${payload.length} | S1=${s1} S2=${s2} S3=${s3} | %1=${pcent1} %2=${pcent2} %3=${pcent3}`);
 
       if (modal){ modal.classList.add("show"); }
     }catch(e){
