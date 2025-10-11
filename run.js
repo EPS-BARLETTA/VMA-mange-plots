@@ -78,9 +78,6 @@ function refreshUI(){
 
   elTimer.classList.toggle('blink', subLeft<=5 && running);
   btnStart.disabled = running;
-
-  // (NOUVEAU) met à jour la ligne d’info sous le chrono
-  if (typeof updateMetaLine === 'function') updateMetaLine();
 }
 
 function saveSub(){
@@ -186,74 +183,4 @@ $("#btnStart").addEventListener("click", ()=>{
 
 (function init(){
   applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI();
-})();
-
-/* ========= Patch UI course (non-intrusif) ========= */
-(function(){
-  // 1) Cacher la note en haut à droite et le nom au-dessus du chrono
-  const headerNote = document.querySelector('header .text-sm');
-  if (headerNote) headerNote.style.display = 'none';
-  const runnerName = document.getElementById('runnerName');
-  if (runnerName) runnerName.style.display = 'none';
-
-  // 2) Créer une ligne d’info en gros sous le chrono
-  const timerEl = document.getElementById('timer');
-  function ensureMetaLine(){
-    if (!timerEl) return null;
-    let band = document.getElementById('courseMetaBand');
-    if (!band){
-      band = document.createElement('div');
-      band.id = 'courseMetaBand';
-      band.style.textAlign   = 'center';
-      band.style.fontWeight  = '800';
-      band.style.fontSize    = '20px';
-      band.style.lineHeight  = '1.3';
-      band.style.marginTop   = '10px';
-      band.style.marginBottom= '0';
-      timerEl.parentNode.insertBefore(band, timerEl.nextSibling);
-    }
-    return band;
-  }
-
-  // 3) Utilitaires
-  function minutesFromDureeString(duree){
-    const m = parseInt(String(duree||'').split(':')[0], 10);
-    return Number.isFinite(m) && m>0 ? m : (typeof courseDur==='number' && courseDur>0 ? Math.round(courseDur/60) : null);
-  }
-  function getFullName(){
-    const fn = document.querySelector('#runnerName .firstname');
-    const ln = document.querySelector('#runnerName .lastname');
-    const a = (fn?.textContent||'').trim(), b = (ln?.textContent||'').trim();
-    return [a,b].filter(Boolean).join(' ');
-  }
-
-  // 4) Alimente la ligne : "Nom Prénom • Course de X min • Y% VMA • Z plots / 1:30"
-  function updateMetaLine(){
-    const band = ensureMetaLine(); if (!band) return;
-    const r = (typeof currentRunner === 'function') ? currentRunner() : null;
-    const b = (typeof currentCourse === 'function') ? currentCourse() : null;
-
-    const fullName = getFullName() || [r?.prenom||'', r?.nom||''].filter(Boolean).join(' ').trim();
-    const minutes  = b ? minutesFromDureeString(b.duree) : null;
-    const pctVMA   = b ? Number(b.pctVMA||0) : null;
-    const plots    = (typeof targetPlotsPer90 === 'function') ? targetPlotsPer90() : null;
-
-    const bits = [];
-    if (fullName) bits.push(fullName);
-    if (Number.isFinite(minutes) && minutes>0) bits.push(`Course de ${minutes} min`);
-    if (Number.isFinite(pctVMA) && pctVMA>0)   bits.push(`${pctVMA}% VMA`);
-    if (Number.isFinite(plots) && plots>0)     bits.push(`${plots} plots / 1:30`);
-    band.textContent = bits.join(' • ');
-  }
-  // exposer pour refreshUI
-  window.updateMetaLine = updateMetaLine;
-
-  // 5) première peinture + suivi auto
-  updateMetaLine();
-
-  const targetSpan = document.getElementById('targetPlots');
-  const mo = new MutationObserver(()=> updateMetaLine());
-  [document.body, timerEl, targetSpan, runnerName]
-    .filter(Boolean)
-    .forEach(el => mo.observe(el, {subtree:true, childList:true, characterData:true}));
 })();
