@@ -1,20 +1,46 @@
 <!DOCTYPE html>
-<html lang="fr"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Mange Plots</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
-<link rel="stylesheet" href="./app.css"/>
-</head><body class="min-h-screen flex flex-col">
-<main class="flex-1 flex items-center justify-center p-6">
-  <div class="text-center space-y-8 max-w-sm w-full">
-    <h1 class="text-5xl font-extrabold tracking-tight">Mange Plots</h1>
-    <div class="space-y-3">
-      <a class="btn btn-primary block" href="./setup.html">Démarrer</a>
-      <a class="btn btn-ghost block" href="./help.html">Aide</a>
-      <a class="btn btn-ghost block" href="./safety.html">Fiche de sécurité</a>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Mange Plots</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
+  <link rel="stylesheet" href="./app.css"/>
+</head>
+<body class="min-h-screen flex flex-col">
+  <main class="flex-1 flex items-center justify-center p-6">
+    <div class="text-center space-y-8 max-w-sm w-full">
+      <h1 class="text-5xl font-extrabold tracking-tight">Mange Plots</h1>
+
+      <div class="space-y-3">
+        <!-- Bouton Démarrer : BLEU -->
+        <a href="./setup.html"
+           class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
+                  bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
+          Démarrer
+        </a>
+
+        <!-- Bouton Aide : VIOLET CLAIR -->
+        <a href="./help.html"
+           class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
+                  bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200
+                  focus:outline-none focus:ring-4 focus:ring-purple-200">
+          Aide
+        </a>
+
+        <!-- Bouton Fiche de sécurité : ORANGE CLAIR -->
+        <a href="./safety.html"
+           class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
+                  bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200
+                  focus:outline-none focus:ring-4 focus:ring-orange-200">
+          Fiche de sécurité
+        </a>
+      </div>
     </div>
-  </div>
-</main>
-<footer class="text-center py-6 border-t-2 border-gray-200">
-  <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
-</footer></body></html>
+  </main>
+
+  <footer class="text-center py-6 border-t-2 border-gray-200">
+    <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
+  </footer>
+</body>
+</html>
