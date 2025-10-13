@@ -11,6 +11,60 @@
 
   <!-- ⚠️ LIB QR OBLIGATOIRE, CHARGÉE AVANT recap.js -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+  <!-- Styles non destructifs (couleurs douces, lisibilité, sans toucher au JS) -->
+  <style>
+    :root{
+      --blue-100:#dbeafe; --blue-200:#bfdbfe; --blue-700:#1d4ed8;
+      --green-100:#dcfce7; --green-200:#bbf7d0; --green-700:#15803d;
+      --border:#e5e7eb; --text:#0f172a; --muted:#64748b; --white:#fff;
+    }
+    /* Cartes récap : 1er bloc = bleu clair, 2e bloc = vert clair */
+    #recapTables > * {
+      border:1px solid var(--border); border-radius:14px; padding:12px;
+      overflow:auto;
+    }
+    #recapTables > *:nth-child(1){ background:var(--blue-100); }
+    #recapTables > *:nth-child(2){ background:var(--green-100); }
+
+    /* Tables : header marqué, zébrage doux, cellules respirantes */
+    #recapTables table{ width:100%; border-collapse:separate; border-spacing:0; }
+    #recapTables th{
+      position:sticky; top:0; background:rgba(255,255,255,.6); backdrop-filter:saturate(1.2);
+      text-align:left; font-weight:800; color:var(--text); border-bottom:2px solid var(--border);
+      padding:10px 12px;
+    }
+    #recapTables td{ padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text); }
+    #recapTables tr:nth-child(even) td{ background:rgba(255,255,255,.35); }
+    #recapTables tr:last-child td{ border-bottom:0; }
+
+    /* Boutons QR auto-stylés (sans changer recap.js) */
+    #qrButtons{ margin-top:4px; }
+    #qrButtons button{
+      display:block; width:100%; padding:.85rem 1rem; font-weight:800; border-radius:12px;
+      border:1px solid var(--border); color:var(--text); background:var(--blue-100);
+      transition:transform .04s ease;
+    }
+    #qrButtons button:active{ transform:translateY(1px); }
+    #qrButtons > *:nth-child(even) button{ background:var(--green-100); border-color:var(--green-200); }
+    #qrButtons > *:nth-child(odd)  button{ background:var(--blue-100);  border-color:var(--blue-200); }
+
+    /* Modale QR : centrée, fond blanc propre */
+    #qrModal.modal{
+      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.35); padding:16px; z-index:50;
+    }
+    #qrModal.modal.active{ display:flex; }
+    #qrModal .qrBox{
+      background:var(--white); border:1px solid var(--border); border-radius:16px;
+      padding:16px; box-shadow:0 10px 40px rgba(0,0,0,.15);
+      max-width:90vw; max-height:90vh; overflow:auto;
+    }
+    #qrModal .close{
+      position:absolute; top:18px; right:18px; background:var(--white); color:var(--text);
+      border:1px solid var(--border); border-radius:999px; padding:.45rem .75rem; font-weight:800;
+    }
+  </style>
 </head>
 <body>
   <header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2 border-gray-200">
@@ -31,7 +85,7 @@
     <section id="qrButtons" class="grid md:grid-cols-2 gap-4"></section>
   </main>
 
-  <!-- ⚠️ MODALE QR (fond blanc, grand QR) -->
+  <!-- Modale QR (fond blanc, grand QR) -->
   <div id="qrModal" class="modal">
     <button class="close" id="closeModal">Fermer</button>
     <div class="qrBox">
@@ -43,7 +97,7 @@
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>
 
-  <!-- Tes helpers + ce recap.js corrigé -->
+  <!-- Tes helpers + recap.js (ordre inchangé) -->
   <script src="./app.js"></script>
   <script src="./recap.js"></script>
 </body>
