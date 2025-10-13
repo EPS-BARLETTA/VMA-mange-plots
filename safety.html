@@ -1,146 +1,25 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fiche Sécurité — Demi-fond</title>
-  <style>:root{
-  --blue:#2563eb;           /* primary blue */
-  --blue-100:#dbeafe;
-  --blue-200:#bfdbfe;
-  --blue-600:#2563eb;
-  --green:#16a34a;
-  --green-100:#dcfce7;
-  --green-200:#bbf7d0;
-  --red-100:#fee2e2;
-  --text:#0f172a;
-  --muted:#64748b;
-  --bg:#f8fafc;
-  --card:#ffffff;
-  --ring: rgba(37,99,235,.25);
-}
-
-/* layout helpers */
-.container { max-width: 1024px; margin: 0 auto; padding: 1rem; }
-.stack-sm > * + * { margin-top: .5rem; }
-.stack > * + * { margin-top: 1rem; }
-.stack-lg > * + * { margin-top: 1.5rem; }
-
-/* buttons */
-.btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
-  padding:.9rem 1.1rem; border-radius:1rem; font-weight:700; text-decoration:none;
-  border:1px solid transparent; box-shadow: 0 1px 0 rgba(0,0,0,.02);
-  transition: transform .05s ease, box-shadow .15s ease, background-color .2s ease;
-  text-align:center;
-}
-.btn:active{ transform: translateY(1px); }
-.btn:focus{ outline:none; box-shadow: 0 0 0 4px var(--ring); }
-.btn-primary{ background:var(--blue-600); color:white; }
-.btn-secondary{ background:var(--blue-100); color:var(--blue-600); border-color:var(--blue-200); }
-.btn-help{ background: #ede9fe; color:#6d28d9; border-color:#ddd6fe; }
-.btn-safety{ background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
-.btn-block{ display:block; width:100%; }
-
-/* cards */
-.card{ background:var(--card); border:1px solid #e5e7eb; border-radius:1rem; padding:1rem; }
-.card-lg{ padding:1.25rem 1.25rem; }
-
-/* pills / badges */
-.pill{ display:inline-block; padding:.4rem .75rem; border-radius:999px; font-weight:700; border:1px solid transparent; }
-.pill-green{ background:var(--green-100); color:var(--green); border-color:var(--green-200); }
-.pill-blue{ background:var(--blue-100); color:var(--blue-600); border-color:var(--blue-200); }
-
-/* runner color contexts */
-.runnerA-bg{ background:var(--blue-100) !important; }
-.runnerB-bg{ background:var(--green-100) !important; }
-.runnerA-accent{ color:var(--blue-600) !important; }
-.runnerB-accent{ color:var(--green) !important; }
-
-/* +/- input pads */
-.pad{ display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px;
-  font-size:2rem; font-weight:900; border-radius:1rem; border:1px solid #e5e7eb;
-  user-select:none;
-}
-.pad.plusA{ background:var(--green-100); }
-.pad.plusB{ background:var(--blue-100); }
-.pad.minus{ background:var(--red-100); }
-
-/* headings */
-.h1{ font-size:clamp(1.8rem, 4vw, 2.6rem); font-weight:900; line-height:1.05; margin:0; color:var(--text); }
-.h2{ font-size:clamp(1.2rem, 3vw, 1.6rem); font-weight:800; margin:0; color:var(--text); }
-.subtle{ color:var(--muted); }
-
-/* safety sheet styles */
-.safety-header{ text-align:center; }
-.safety-title{ font-size:2rem; font-weight:900; margin:.25rem 0; }
-.safety-sub{ color:var(--muted); font-weight:700; }
-.safety-grid{ display:grid; gap:1rem; grid-template-columns: 1fr; }
-@media (min-width: 800px){
-  .safety-grid{ grid-template-columns: 1fr 1fr; }
-}
-.safety-list{ background:var(--card); border:1px solid #e5e7eb; border-radius:1rem; padding:1rem 1.25rem; }
-.safety-list h3{ margin-top:0; margin-bottom:.5rem; }
-.safety-footer{ margin-top:1rem; text-align:center; color:var(--muted); font-weight:700; }
-
-/* center content for iPad */
-.centered-page{ min-height:100dvh; display:flex; align-items:center; justify-content:center; background:var(--bg); }
-.hero{ max-width:740px; margin:0 auto; }
-.hero .actions{ display:grid; gap:.75rem; grid-template-columns: 1fr; }
-@media (min-width: 560px){ .hero .actions{ grid-template-columns: 1fr 1fr; } }
-
-/* small utilities */
-.mt-0{ margin-top:0; } .mt-1{ margin-top:.25rem; } .mt-2{ margin-top:.5rem; } .mt-3{ margin-top:.75rem; } .mt-4{ margin-top:1rem; }
-.mb-0{ margin-bottom:0; } .mb-1{ margin-bottom:.25rem; } .mb-2{ margin-bottom:.5rem; } .mb-3{ margin-bottom:.75rem; } .mb-4{ margin-bottom:1rem; }
-
-/* course page header hide helper (we hide a specific header if it only contains the blocs/couleurs helper) */
-header .useless-tip{ display:none !important; }</style>
-</head>
-<body class="centered-page">
-  <main class="container card card-lg">
-    <header class="safety-header">
-      <div class="safety-title">FICHE SÉCURITÉ — DEMI-FOND</div>
-      <div class="safety-sub">Rappels essentiels pour la séance</div>
-    </header>
-
-    <section class="safety-grid mt-3">
-      <div class="safety-list">
-        <h3>Avant la course</h3>
-        <ul class="stack-sm">
-          <li>Toujours effectuer un échauffement complet.</li>
-          <li>Porter une tenue adaptée et des chaussures bien lacées.</li>
-          <li>Avoir bu et mangé correctement avant la séance.</li>
-        </ul>
-      </div>
-
-      <div class="safety-list">
-        <h3>Pendant la course</h3>
-        <ul class="stack-sm">
-          <li>Respecter le parcours indiqué par l’enseignant.</li>
-          <li>Courir à son rythme, sans départ trop rapide.</li>
-          <li>Garder sa trajectoire, ne pas gêner ni bousculer les autres.</li>
-          <li>Signaler tout malaise ou douleur immédiatement.</li>
-        </ul>
-      </div>
-
-      <div class="safety-list">
-        <h3>Après la course</h3>
-        <ul class="stack-sm">
-          <li>Ne pas s’arrêter brutalement, marcher pour récupérer.</li>
-          <li>S’hydrater calmement.</li>
-          <li>Ranger ses affaires et respecter le matériel.</li>
-        </ul>
-      </div>
-
-      <div class="safety-list">
-        <h3>En cas de problème</h3>
-        <ul class="stack-sm">
-          <li>Ne jamais déplacer un camarade blessé.</li>
-          <li>Prévenir immédiatement l’enseignant.</li>
-        </ul>
-      </div>
-    </section>
-
-    <footer class="safety-footer">Lycée Vauban — Équipe EPS</footer>
-  </main>
-</body>
-</html>
+<html lang="fr"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Fiche de sécurité — Mange Plots</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
+<link rel="stylesheet" href="./app.css"/>
+</head><body class="min-h-screen">
+<header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2 border-gray-200">
+  <a href="./index.html" class="btn btn-ghost">Accueil</a>
+</header>
+<main class="max-w-6xl mx-auto p-4 space-y-4">
+  <h1 class="text-3xl font-extrabold">Fiche de sécurité</h1>
+  <div class="card">
+    <ul class="list-disc ml-6 space-y-1">
+      <li>Échauffement obligatoire</li>
+      <li>Respect des zones de course</li>
+      <li>Hydratation et récupération</li>
+      <li>% VMA adaptés à chacun</li>
+    </ul>
+  </div>
+</main>
+<footer class="text-center py-6 border-t-2 border-gray-200">
+  <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
+</footer>
+</body></html>
