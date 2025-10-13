@@ -11,30 +11,26 @@
   <main class="flex-1 flex items-center justify-center p-6">
     <div class="text-center space-y-8 max-w-sm w-full">
       <h1 class="text-5xl font-extrabold tracking-tight">Mange Plots</h1>
-
       <div class="space-y-3">
-        <!-- Bouton Démarrer : BLEU -->
-        <a href="./setup.html"
-           class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
-                  bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200">
-          Démarrer
-        </a>
+        <!-- Démarrer : bleu -->
+        <a class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
+                   bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200"
+           href="./setup.html">Démarrer</a>
 
-        <!-- Bouton Aide : VIOLET CLAIR -->
-        <a href="./help.html"
-           class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
-                  bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200
-                  focus:outline-none focus:ring-4 focus:ring-purple-200">
-          Aide
-        </a>
+        <!-- Aide : violet clair -->
+        <a class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
+                   bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200
+                   focus:outline-none focus:ring-4 focus:ring-purple-200"
+           href="./help.html">Aide</a>
 
-        <!-- Bouton Fiche de sécurité : ORANGE CLAIR -->
-        <a href="./safety.html"
-           class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
-                  bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200
-                  focus:outline-none focus:ring-4 focus:ring-orange-200">
+        <!-- Fiche sécurité : bouton qui OUVRE la modale (pas de nouveau fichier) -->
+        <button type="button"
+                class="block w-full rounded-2xl py-3 px-4 text-lg font-bold shadow-sm
+                       bg-orange-100 text-orange-700 border border-orange-200 hover:bg-orange-200
+                       focus:outline-none focus:ring-4 focus:ring-orange-200"
+                onclick="document.getElementById('safetyModal').classList.remove('hidden')">
           Fiche de sécurité
-        </a>
+        </button>
       </div>
     </div>
   </main>
@@ -42,5 +38,82 @@
   <footer class="text-center py-6 border-t-2 border-gray-200">
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>
+
+  <!-- ============================= -->
+  <!--   MODALE FICHE DE SÉCURITÉ    -->
+  <!-- ============================= -->
+  <div id="safetyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+    <div class="w-full max-w-3xl max-h-[90vh] overflow-auto bg-white rounded-2xl shadow-xl border border-gray-200">
+      <!-- En-tête modale -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200">
+        <h2 class="text-xl md:text-2xl font-extrabold tracking-tight">FICHE SÉCURITÉ – DEMI-FOND</h2>
+        <button class="rounded-full border border-gray-200 px-3 py-1 font-bold"
+                onclick="document.getElementById('safetyModal').classList.add('hidden')">Fermer</button>
+      </div>
+
+      <!-- Contenu fiche -->
+      <div class="p-4">
+        <p class="text-sm text-gray-600 font-semibold text-center mb-4">
+          Rappels essentiels pour une séance encadrée et sécurisée
+        </p>
+
+        <!-- grille responsive : 1 col mobile / 2 cols large -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <!-- Avant la course -->
+          <section class="border border-blue-100 rounded-xl p-4 bg-blue-50">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Avant la course :</h3>
+            <ul class="list-disc ml-5 space-y-1 text-gray-900">
+              <li>Toujours effectuer un échauffement complet.</li>
+              <li>Porter une tenue adaptée et des chaussures bien lacées.</li>
+              <li>Avoir bu et mangé correctement avant la séance.</li>
+            </ul>
+          </section>
+
+          <!-- Pendant la course -->
+          <section class="border border-emerald-100 rounded-xl p-4 bg-emerald-50">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Pendant la course :</h3>
+            <ul class="list-disc ml-5 space-y-1 text-gray-900">
+              <li>Respecter le parcours indiqué par l’enseignant.</li>
+              <li>Courir à son rythme, sans départ trop rapide.</li>
+              <li>Garder sa trajectoire, ne pas gêner ni bousculer les autres.</li>
+              <li>Signaler tout malaise ou douleur immédiatement.</li>
+            </ul>
+          </section>
+
+          <!-- Après la course -->
+          <section class="border border-amber-100 rounded-xl p-4 bg-amber-50">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">Après la course :</h3>
+            <ul class="list-disc ml-5 space-y-1 text-gray-900">
+              <li>Ne pas s’arrêter brutalement, marcher pour récupérer.</li>
+              <li>S’hydrater calmement.</li>
+              <li>Ranger ses affaires et respecter le matériel.</li>
+            </ul>
+          </section>
+
+          <!-- En cas de problème -->
+          <section class="border border-rose-100 rounded-xl p-4 bg-rose-50">
+            <h3 class="text-lg font-bold text-gray-900 mb-2">En cas de problème :</h3>
+            <ul class="list-disc ml-5 space-y-1 text-gray-900">
+              <li>Ne jamais déplacer un camarade blessé.</li>
+              <li>Prévenir immédiatement l’enseignant.</li>
+            </ul>
+          </section>
+        </div>
+
+        <p class="text-center text-sm text-gray-600 font-semibold mt-4">
+          Lycée Vauban — Équipe EPS — Luxembourg
+        </p>
+
+        <!-- barre d’actions -->
+        <div class="flex items-center justify-center gap-2 mt-4">
+          <button class="btn btn-primary"
+                  onclick="window.print()">🖶 Imprimer</button>
+          <button class="btn btn-ghost"
+                  onclick="document.getElementById('safetyModal').classList.add('hidden')">Fermer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- /modale -->
 </body>
 </html>
