@@ -12,26 +12,29 @@
   <h1 class="text-3xl font-extrabold">Paramétrage</h1>
 
   <section class="grid md:grid-cols-2 gap-4">
-    <div class="card">
-      <h2 class="text-xl font-bold mb-2">Élève A</h2>
+    <!-- Coureur A : fond bleu clair + champs bleu très clair -->
+    <div class="card bg-blue-100">
+      <h2 class="text-xl font-bold mb-2 text-gray-900">Coureur A</h2>
       <div class="grid grid-cols-2 gap-3">
-        <label class="label">Nom</label><input id="a_nom" class="input" required>
-        <label class="label">Prénom</label><input id="a_prenom" class="input" required>
-        <label class="label">Classe</label><input id="a_classe" class="input" required>
+        <label class="label">Nom</label><input id="a_nom" class="input bg-blue-50 text-gray-900" required>
+        <label class="label">Prénom</label><input id="a_prenom" class="input bg-blue-50 text-gray-900" required>
+        <label class="label">Classe</label><input id="a_classe" class="input bg-blue-50 text-gray-900" required>
         <label class="label">Sexe</label>
-        <select id="a_sexe" class="select"><option value="M">M</option><option value="F">F</option></select>
-        <label class="label">VMA (km/h)</label><input id="a_vma" class="input" type="number" inputmode="decimal" step="0.5" min="5" max="25" placeholder="12.5" required>
+        <select id="a_sexe" class="select bg-blue-50 text-gray-900"><option value="M">M</option><option value="F">F</option></select>
+        <label class="label">VMA (km/h)</label><input id="a_vma" class="input bg-blue-50 text-gray-900" type="number" inputmode="decimal" step="0.5" min="5" max="25" placeholder="12.5" required>
       </div>
     </div>
-    <div class="card">
-      <h2 class="text-xl font-bold mb-2">Élève B</h2>
+
+    <!-- Coureur B : fond vert clair + champs vert très clair -->
+    <div class="card bg-green-100">
+      <h2 class="text-xl font-bold mb-2 text-gray-900">Coureur B</h2>
       <div class="grid grid-cols-2 gap-3">
-        <label class="label">Nom</label><input id="b_nom" class="input">
-        <label class="label">Prénom</label><input id="b_prenom" class="input">
-        <label class="label">Classe</label><input id="b_classe" class="input">
+        <label class="label">Nom</label><input id="b_nom" class="input bg-green-50 text-gray-900">
+        <label class="label">Prénom</label><input id="b_prenom" class="input bg-green-50 text-gray-900">
+        <label class="label">Classe</label><input id="b_classe" class="input bg-green-50 text-gray-900">
         <label class="label">Sexe</label>
-        <select id="b_sexe" class="select"><option value="M">M</option><option value="F">F</option></select>
-        <label class="label">VMA (km/h)</label><input id="b_vma" class="input" type="number" inputmode="decimal" step="0.5" min="5" max="25" placeholder="14.0">
+        <select id="b_sexe" class="select bg-green-50 text-gray-900"><option value="M">M</option><option value="F">F</option></select>
+        <label class="label">VMA (km/h)</label><input id="b_vma" class="input bg-green-50 text-gray-900" type="number" inputmode="decimal" step="0.5" min="5" max="25" placeholder="14.0">
       </div>
     </div>
   </section>
