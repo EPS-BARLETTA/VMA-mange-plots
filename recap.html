@@ -1,23 +1,273 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <title>Bilan — Mange Plots</title>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <link rel="stylesheet" href="./app.css"/>
-  <!-- UI tweaks additions -->
-  <link rel="stylesheet" href="./theme.css">
-  <script defer src="./ui-tweaks.js"></script>
+  <title>Bilan — Mange Plots</title>
+  <style>:root{
+  --blue:#2563eb;           /* primary blue */
+  --blue-100:#dbeafe;
+  --blue-200:#bfdbfe;
+  --blue-600:#2563eb;
+  --green:#16a34a;
+  --green-100:#dcfce7;
+  --green-200:#bbf7d0;
+  --red-100:#fee2e2;
+  --text:#0f172a;
+  --muted:#64748b;
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --ring: rgba(37,99,235,.25);
+}
 
+/* layout helpers */
+.container { max-width: 1024px; margin: 0 auto; padding: 1rem; }
+.stack-sm > * + * { margin-top: .5rem; }
+.stack > * + * { margin-top: 1rem; }
+.stack-lg > * + * { margin-top: 1.5rem; }
+
+/* buttons */
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+  padding:.9rem 1.1rem; border-radius:1rem; font-weight:700; text-decoration:none;
+  border:1px solid transparent; box-shadow: 0 1px 0 rgba(0,0,0,.02);
+  transition: transform .05s ease, box-shadow .15s ease, background-color .2s ease;
+  text-align:center;
+}
+.btn:active{ transform: translateY(1px); }
+.btn:focus{ outline:none; box-shadow: 0 0 0 4px var(--ring); }
+.btn-primary{ background:var(--blue-600); color:white; }
+.btn-secondary{ background:var(--blue-100); color:var(--blue-600); border-color:var(--blue-200); }
+.btn-help{ background: #ede9fe; color:#6d28d9; border-color:#ddd6fe; }
+.btn-safety{ background:#fff7ed; color:#c2410c; border-color:#fed7aa; }
+.btn-block{ display:block; width:100%; }
+
+/* cards */
+.card{ background:var(--card); border:1px solid #e5e7eb; border-radius:1rem; padding:1rem; }
+.card-lg{ padding:1.25rem 1.25rem; }
+
+/* pills / badges */
+.pill{ display:inline-block; padding:.4rem .75rem; border-radius:999px; font-weight:700; border:1px solid transparent; }
+.pill-green{ background:var(--green-100); color:var(--green); border-color:var(--green-200); }
+.pill-blue{ background:var(--blue-100); color:var(--blue-600); border-color:var(--blue-200); }
+
+/* runner color contexts */
+.runnerA-bg{ background:var(--blue-100) !important; }
+.runnerB-bg{ background:var(--green-100) !important; }
+.runnerA-accent{ color:var(--blue-600) !important; }
+.runnerB-accent{ color:var(--green) !important; }
+
+/* +/- input pads */
+.pad{ display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px;
+  font-size:2rem; font-weight:900; border-radius:1rem; border:1px solid #e5e7eb;
+  user-select:none;
+}
+.pad.plusA{ background:var(--green-100); }
+.pad.plusB{ background:var(--blue-100); }
+.pad.minus{ background:var(--red-100); }
+
+/* headings */
+.h1{ font-size:clamp(1.8rem, 4vw, 2.6rem); font-weight:900; line-height:1.05; margin:0; color:var(--text); }
+.h2{ font-size:clamp(1.2rem, 3vw, 1.6rem); font-weight:800; margin:0; color:var(--text); }
+.subtle{ color:var(--muted); }
+
+/* safety sheet styles */
+.safety-header{ text-align:center; }
+.safety-title{ font-size:2rem; font-weight:900; margin:.25rem 0; }
+.safety-sub{ color:var(--muted); font-weight:700; }
+.safety-grid{ display:grid; gap:1rem; grid-template-columns: 1fr; }
+@media (min-width: 800px){
+  .safety-grid{ grid-template-columns: 1fr 1fr; }
+}
+.safety-list{ background:var(--card); border:1px solid #e5e7eb; border-radius:1rem; padding:1rem 1.25rem; }
+.safety-list h3{ margin-top:0; margin-bottom:.5rem; }
+.safety-footer{ margin-top:1rem; text-align:center; color:var(--muted); font-weight:700; }
+
+/* center content for iPad */
+.centered-page{ min-height:100dvh; display:flex; align-items:center; justify-content:center; background:var(--bg); }
+.hero{ max-width:740px; margin:0 auto; }
+.hero .actions{ display:grid; gap:.75rem; grid-template-columns: 1fr; }
+@media (min-width: 560px){ .hero .actions{ grid-template-columns: 1fr 1fr; } }
+
+/* small utilities */
+.mt-0{ margin-top:0; } .mt-1{ margin-top:.25rem; } .mt-2{ margin-top:.5rem; } .mt-3{ margin-top:.75rem; } .mt-4{ margin-top:1rem; }
+.mb-0{ margin-bottom:0; } .mb-1{ margin-bottom:.25rem; } .mb-2{ margin-bottom:.5rem; } .mb-3{ margin-bottom:.75rem; } .mb-4{ margin-bottom:1rem; }
+
+/* course page header hide helper (we hide a specific header if it only contains the blocs/couleurs helper) */
+header .useless-tip{ display:none !important; }</style>
 </head>
 <body>
+
   <header class="container p-4">
     <a href="./index.html" class="btn btn-secondary">Accueil</a>
   </header>
   <main class="container p-4">
     <div id="recap-root"></div>
   </main>
-  <script src="./app.js"></script>
-  <script src="./recap.js"></script>
+
+<script>// Non-destructive UI tweaks for VMA-mange-plots
+// Works by querying existing DOM and adding classes/elements; no logic/IDs changed.
+
+(function(){
+  const page = location.pathname.split('/').pop();
+
+  // helper: try to select by text content
+  const findByText = (selector, text) => {
+    const els = Array.from(document.querySelectorAll(selector));
+    return els.find(el => el.textContent.trim().toLowerCase().includes(text.toLowerCase()));
+  };
+
+  // LANDING (index.html)
+  if (/index\.html$|\/$/.test(page)) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const hero = document.querySelector('main, .hero, .container') || document.body;
+      hero.classList?.add('hero');
+
+      // Ensure title exists
+      const h1 = document.querySelector('h1') || (()=>{ const x=document.createElement('h1'); x.className='h1'; x.textContent=document.title||'VMA Mange-Plots'; document.body.prepend(x); return x; })();
+
+      // Buttons (guess by links already present)
+      const startBtn = document.querySelector('a[href*="setup.html"], a[href*="run.html"]');
+      const helpBtn  = document.querySelector('a[href*="help.html"]');
+      const safetyBtn= document.querySelector('a[href*="safety.html"]');
+
+      // Wrap in action grid
+      const actions = document.createElement('div'); actions.className = 'actions mt-3';
+      if (startBtn) { startBtn.classList.add('btn','btn-primary','btn-block'); actions.appendChild(startBtn); }
+      if (helpBtn)  { helpBtn.classList.add('btn','btn-help'); actions.appendChild(helpBtn); }
+      if (safetyBtn){ safetyBtn.classList.add('btn','btn-safety'); actions.appendChild(safetyBtn); }
+
+      const container = document.createElement('div'); container.className='container card card-lg';
+      const header = document.createElement('div'); header.className='stack';
+      header.appendChild(h1);
+      container.appendChild(header);
+      container.appendChild(actions);
+
+      // Center the page
+      const wrapper = document.createElement('div'); wrapper.className='centered-page';
+      wrapper.appendChild(container);
+      document.body.innerHTML='';
+      document.body.appendChild(wrapper);
+    });
+  }
+
+  // SETUP (setup.html) — rename Eleve to Coureur + colored input blocks
+  if (/setup\.html$/.test(page)) {
+    document.addEventListener('DOMContentLoaded', () => {
+      // rename labels "Élève A/B" -> "Coureur A/B"
+      const labA = findByText('label, .label, .field label, span', 'élève a');
+      const labB = findByText('label, .label, .field label, span', 'élève b');
+      if (labA) labA.innerHTML = labA.innerHTML.replace(/Élève\s*A/i, 'Coureur A');
+      if (labB) labB.innerHTML = labB.innerHTML.replace(/Élève\s*B/i, 'Coureur B');
+
+      // guess input blocks near those labels and tint them
+      const tint = (label, cls) => {
+        if (!label) return;
+        let block = label.closest('.card, .field, .form-group, .row, .input-block') || label.parentElement;
+        if (block) block.classList.add(cls);
+        // also try to tint the actual inputs beneath
+        const inputs = block ? block.querySelectorAll('input, select, textarea') : [];
+        inputs.forEach(i => i.style.background = getComputedStyle(document.querySelector('.'+cls)).backgroundColor);
+      };
+      tint(labA, 'runnerA-bg'); // blue-ish
+      tint(labB, 'runnerB-bg'); // green-ish
+    });
+  }
+
+  // RUN (run.html) — header cleanup, big first name only, metrics strip, pills for remaining time, plus/minus pads
+  if (/run\.html$/.test(page)) {
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1) Hide top-left "Blocs 1:30 • Couleurs alternées" if present
+      const maybeHeader = document.querySelector('header');
+      if (maybeHeader && maybeHeader.textContent.trim().toLowerCase().includes('couleurs')) {
+        maybeHeader.classList.add('useless-tip');
+      }
+
+      // 2) Keep only first name (look for name near the chrono/h1/h2)
+      const nameEl = document.querySelector('.runner-name, h1, .h1, .chrono-title');
+      if (nameEl) {
+        const first = nameEl.textContent.trim().split(/\s+/)[0];
+        if (first) nameEl.textContent = first;
+        nameEl.classList.add('h1');
+      }
+
+      // 3) Metrics strip under chrono if data available in localStorage
+      // We try a few likely keys that your app already uses; if none, we just skip.
+      const keys = ['vmaA','vma','vitesseA','targetPercent','pourcentage','pct','blockSec','blocSec','bloc','block','blockDuration'];
+      const store = {};
+      Object.keys(localStorage).forEach(k => {
+        try{ store[k]=JSON.parse(localStorage.getItem(k)); }catch{ store[k]=localStorage.getItem(k); }
+      });
+
+      function getLikelyNumber(keyList){
+        for (const k of keyList){
+          const v = store[k];
+          const n = (typeof v==='number')?v:parseFloat(v);
+          if (!isNaN(n) && isFinite(n)) return n;
+        }
+        return null;
+      }
+      const vma = getLikelyNumber(['vmaA','vma']);
+      const pct = getLikelyNumber(['targetPercent','pourcentage','pct']);
+      // block seconds fallback: try to read the text that contains something like "1:30"
+      let blockSec = getLikelyNumber(['blockSec','blocSec','block','blockDuration']);
+      if (!blockSec){
+        const txt = document.body.textContent.match(/\b(\d{1,2}):([0-5]\d)\b/);
+        if (txt){
+          blockSec = parseInt(txt[1],10)*60 + parseInt(txt[2],10);
+        }
+      }
+
+      const chrono = document.querySelector('.chrono, #chrono, [data-role="chrono"]') || document.querySelector('main');
+      if (chrono && (vma || pct || blockSec)) {
+        const bar = document.createElement('div');
+        bar.className = 'card stack-sm mt-3';
+        const lines = [];
+
+        if (vma && pct){
+          lines.push(`<div class="h2"><span class="subtle">VMA</span> ${vma} &nbsp;&nbsp; <span class="subtle">•</span> &nbsp;${pct}% <span class="subtle">—</span> ${Math.round(vma*pct/100*10)/10} km/h</div>`);
+        } else if (vma){
+          lines.push(`<div class="h2"><span class="subtle">VMA</span> ${vma}</div>`);
+        }
+
+        if (blockSec){
+          const mm = Math.floor(blockSec/60).toString().padStart(1,'0');
+          const ss = (blockSec%60).toString().padStart(2,'0');
+          lines.push(`<div class="subtle">Bloc: ${mm}:${ss}</div>`);
+        }
+
+        bar.innerHTML = lines.join('');
+        chrono.parentElement.insertBefore(bar, chrono.nextSibling);
+      }
+
+      // 4) Emphasize time-remaining per block as a pill (we search for text "restant")
+      const rem = Array.from(document.querySelectorAll('*')).find(el => /restant/i.test(el.textContent) && el !== document.body);
+      if (rem){
+        rem.classList.add('pill','pill-green'); // default green; runner B will switch it to blue later if needed
+        rem.style.display='inline-block';
+      }
+
+      // 5) +/- pads tint (try to detect runner zones)
+      const zones = document.querySelectorAll('.runnerA, .runnerB, [data-runner="A"], [data-runner="B"]');
+      zones.forEach(z => {
+        const isA = /runnerA|data-runner="A"/i.test(z.outerHTML);
+        const plus = Array.from(z.querySelectorAll('button, .btn')).filter(b => b.textContent.trim()==='+')[0];
+        const minus= Array.from(z.querySelectorAll('button, .btn')).filter(b => b.textContent.trim()==='-')[0];
+        if (plus){ plus.classList.add('pad', isA?'plusA':'plusB'); }
+        if (minus){ minus.classList.add('pad','minus'); }
+      });
+    });
+  }
+
+  // RECAP (recap.html) — tone backgrounds per runner blocks if present
+  if (/recap\.html$/.test(page)) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const a = Array.from(document.querySelectorAll('.runnerA, .recapA, [data-runner="A"]'));
+      const b = Array.from(document.querySelectorAll('.runnerB, .recapB, [data-runner="B"]'));
+      a.forEach(el => el.classList.add('runnerA-bg'));
+      b.forEach(el => el.classList.add('runnerB-bg'));
+    });
+  }
+})();</script>
+<script src="./app.js"></script><script src="./recap.js"></script>
 </body>
 </html>
