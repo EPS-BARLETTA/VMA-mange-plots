@@ -1,90 +1,24 @@
 <!DOCTYPE html>
-<html lang="fr"><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Paramétrage — Mange Plots</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
-<link rel="stylesheet" href="./app.css"/>
-</head><body>
-<header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2 border-gray-200">
-  <a href="./index.html" class="btn btn-ghost">Accueil</a>
-</header>
-<main class="max-w-6xl mx-auto p-4 space-y-6">
-  <h1 class="text-3xl font-extrabold">Paramétrage</h1>
+<html lang="fr">
+<head>
+  <title>Paramétrage — Mange Plots</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="stylesheet" href="./app.css"/>
+  <!-- UI tweaks additions -->
+  <link rel="stylesheet" href="./theme.css">
+  <script defer src="./ui-tweaks.js"></script>
 
-  <section class="grid md:grid-cols-2 gap-4">
-    <div class="card">
-      <h2 class="text-xl font-bold mb-2">Élève A</h2>
-      <div class="grid grid-cols-2 gap-3">
-        <label class="label">Nom</label><input id="a_nom" class="input" required>
-        <label class="label">Prénom</label><input id="a_prenom" class="input" required>
-        <label class="label">Classe</label><input id="a_classe" class="input" required>
-        <label class="label">Sexe</label>
-        <select id="a_sexe" class="select"><option value="M">M</option><option value="F">F</option></select>
-        <label class="label">VMA (km/h)</label><input id="a_vma" class="input" type="number" inputmode="decimal" step="0.5" min="5" max="25" placeholder="12.5" required>
-      </div>
-    </div>
-    <div class="card">
-      <h2 class="text-xl font-bold mb-2">Élève B</h2>
-      <div class="grid grid-cols-2 gap-3">
-        <label class="label">Nom</label><input id="b_nom" class="input">
-        <label class="label">Prénom</label><input id="b_prenom" class="input">
-        <label class="label">Classe</label><input id="b_classe" class="input">
-        <label class="label">Sexe</label>
-        <select id="b_sexe" class="select"><option value="M">M</option><option value="F">F</option></select>
-        <label class="label">VMA (km/h)</label><input id="b_vma" class="input" type="number" inputmode="decimal" step="0.5" min="5" max="25" placeholder="14.0">
-      </div>
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="grid md:grid-cols-4 gap-4 items-end">
-      <div>
-        <div class="label">Mode</div>
-        <select id="mode" class="select">
-          <option value="duo">Duo (A puis B)</option>
-          <option value="soloA">Solo (A seulement)</option>
-          <option value="soloB">Solo (B seulement)</option>
-        </select>
-      </div>
-      <div>
-        <div class="label">Espacement des plots</div>
-        <select id="spacing" class="select">
-          <option value="12.5">12,5 m (≈0,5 km/h/plot)</option>
-          <option value="25">25 m (≈1,0 km/h/plot)</option>
-        </select>
-      </div>
-      <div class="md:col-span-2 text-right">
-        <button id="btnPreset1" class="btn btn-blue">Preset: 4:30@80 • 6:00@90 • 3:00@100</button>
-      </div>
-    </div>
-
-    <div class="grid md:grid-cols-5 gap-3 items-end mt-4">
-      <div>
-        <div class="label">Durée</div>
-        <select id="duree" class="select"></select>
-      </div>
-      <div>
-        <div class="label">% de VMA</div>
-        <input id="pct" class="input" type="number" inputmode="numeric" min="50" max="120" step="1" placeholder="80" required>
-      </div>
-      <div class="md:col-span-2"></div>
-      <div><button id="btnAdd" class="btn btn-primary w-full" disabled>Ajouter</button></div>
-    </div>
-
-    <div class="mt-4 overflow-auto">
-      <table class="results min-w-full">
-        <thead><tr><th>#</th><th>Durée</th><th>%VMA</th><th>Blocs 1:30</th><th>Actions</th></tr></thead>
-        <tbody id="tbodyPlan"></tbody>
-      </table>
-    </div>
-  </section>
-
-  <div class="flex justify-end gap-2">
-    <button id="btnStart" class="btn btn-primary" disabled>Lancer</button>
-  </div>
-</main>
-<footer class="text-center py-6 border-t-2 border-gray-200">
-  <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
-</footer>
-<script src="./app.js"></script><script src="./setup.js"></script>
-</body></html>
+</head>
+<body>
+  <header class="container p-4">
+    <a href="./index.html" class="btn btn-secondary">Accueil</a>
+  </header>
+  <main class="container p-4">
+    <!-- Le contenu sera géré par votre JS existant -->
+    <div id="setup-root"></div>
+  </main>
+  <script src="./app.js"></script>
+  <script src="./setup.js"></script>
+</body>
+</html>
