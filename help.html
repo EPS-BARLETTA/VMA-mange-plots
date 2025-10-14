@@ -4,20 +4,144 @@
 <title>Aide — Mange Plots</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
 <link rel="stylesheet" href="./app.css"/>
-</head><body class="min-h-screen">
-<header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2 border-gray-200">
-  <a href="./index.html" class="btn btn-ghost">Accueil</a>
-</header>
-<main class="max-w-6xl mx-auto p-4 space-y-4">
-  <h1 class="text-3xl font-extrabold">Aide</h1>
-  <div class="card space-y-3">
-    <p>⏱️ Chrono stabilisé (performance.now + requestAnimationFrame).</p>
-    <p>🔊 Bip sur les 5 dernières secondes de chaque 1:30, bip final.</p>
-    <p>🎨 Écran Course : A = <b>bleu clair</b>, B = <b>vert clair</b>.</p>
-    <p>📲 QR “ScanProf + détails” : 7 champs obligatoires + clés lisibles par course et par tranche 1:30.</p>
-  </div>
-</main>
-<footer class="text-center py-6 border-t-2 border-gray-200">
-  <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
-</footer>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <header class="max-w-6xl mx-auto p-4 flex justify-between items-center border-b-2 border-gray-200">
+    <a href="./index.html" class="btn btn-ghost">Accueil</a>
+  </header>
+
+  <main class="max-w-6xl mx-auto p-4 space-y-6">
+    <h1 class="text-3xl font-extrabold">Aide & Guide — Élèves & Enseignants</h1>
+
+    <!-- Aperçu rapide -->
+    <section class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+      <p class="text-gray-700 leading-relaxed">
+        <strong>Mange Plots</strong> sert à conduire des séances de demi-fond avec des sous-blocs de <b>1:30</b>.  
+        L’écran de course affiche le <b>prénom</b> du coureur en grand, le <b>chrono</b>, une <b>pastille</b> “temps restant par bloc” et la <b>cible de plots / 1:30</b>.  
+        À la fin, un <b>bilan</b> et des <b>QR codes</b> permettent de partager les résultats.
+      </p>
+    </section>
+
+    <!-- Élèves -->
+    <section class="rounded-2xl p-5 border border-sky-200 bg-sky-50">
+      <h2 class="text-xl font-extrabold text-gray-900">Pour les élèves — ce que tu dois faire</h2>
+
+      <div class="grid md:grid-cols-2 gap-4 mt-2">
+        <div class="bg-white rounded-xl border border-sky-100 p-4">
+          <h3 class="font-bold">Avant de courir</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Écoute les consignes : parcours, sens de course, zones de dépassement.</li>
+            <li>Vérifie tes lacets, retire bijoux/objets, bois une gorgée d’eau.</li>
+            <li>Échauffe-toi (progressif). Demande si tu n’as pas compris la cible.</li>
+          </ul>
+        </div>
+        <div class="bg-white rounded-xl border border-sky-100 p-4">
+          <h3 class="font-bold">Pendant la course</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Ton <b>prénom</b> s’affiche en grand quand c’est ton tour.</li>
+            <li>Reste régulier : vise la <b>cible de plots / 1:30</b> indiquée sous le chrono.</li>
+            <li>Garde ta trajectoire, évite de bousculer, préviens en cas de malaise.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-4 rounded-xl border border-sky-100 bg-white p-4">
+        <h3 class="font-bold">Après la course</h3>
+        <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+          <li>Marche 1–2 min pour récupérer, hydrate-toi.</li>
+          <li>Regarde le <b>bilan</b> et demande des conseils pour la séance suivante.</li>
+          <li>Respecte le matériel et l’espace de course.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Profs -->
+    <section class="rounded-2xl p-5 border border-amber-200 bg-amber-50">
+      <h2 class="text-xl font-extrabold text-gray-900">Pour les enseignants — préparer & conduire la séance</h2>
+
+      <div class="grid md:grid-cols-2 gap-4 mt-2">
+        <div class="bg-white rounded-xl border border-amber-100 p-4">
+          <h3 class="font-bold">1) Paramétrage</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Dans <b>Paramétrage</b> : saisir Nom/Prénom/Classe/Sexe (si utile) et <b>VMA (km/h)</b> des coureurs.</li>
+            <li>Choisir le <b>mode</b> : <em>Duo</em> (A puis B), <em>Solo A</em> ou <em>Solo B</em>.</li>
+            <li>Définir l’<b>espacement des plots</b> : 12,5 m (réglage fin) ou 25 m (paliers plus gros).</li>
+            <li>Construire le <b>plan</b> : choisir une durée, un %VMA, cliquer <b>Ajouter</b>. Utiliser <b>Preset</b> si besoin.</li>
+            <li>Vérifier la table (durée, %VMA, # de sous-blocs). Le bouton <b>Lancer</b> s’active quand c’est prêt.</li>
+          </ul>
+        </div>
+        <div class="bg-white rounded-xl border border-amber-100 p-4">
+          <h3 class="font-bold">2) Pendant la course</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Écran <b>Course</b> : prénom en grand, chrono, pastille <b>temps restant par bloc (1:30)</b>, <b>cible plots / 1:30</b>.</li>
+            <li>Comptage : toucher <b>+</b> à chaque plot, <b>−</b> pour corriger (A = vert clair, B = bleu clair si activé).</li>
+            <li>En <em>Duo</em> : l’alternance A ↔ B suit le plan, l’app bippe sur les 5 dernières secondes et à la fin.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4 mt-4">
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <h3 class="font-bold text-gray-900">3) Bilan & QR</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Le <b>Bilan</b> affiche un récap (fonds bleu/vert selon les coureurs, tableaux lisibles).</li>
+            <li>Générer des <b>QR codes</b> individuels (A/B) pour saisir/partager les résultats.</li>
+            <li>QR calibrés pour un <b>scan rapide</b> (écran propre, luminosité haute).</li>
+          </ul>
+        </div>
+        <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+          <h3 class="font-bold text-gray-900">Astuces d’usage (iPad)</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Mode paysage, luminosité élevée, tablette au centre et légèrement surélevée.</li>
+            <li><b>NoSleep</b> empêche la veille ; éviter de verrouiller l’écran pendant la séance.</li>
+            <li>Pré-annoncer la <b>cible</b> aux élèves et rappeler la régularité attendue.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Foire aux questions / Dépannage -->
+    <section class="rounded-2xl p-5 border border-purple-200 bg-purple-50">
+      <h2 class="text-xl font-extrabold text-gray-900">FAQ / Dépannage rapide</h2>
+      <div class="grid md:grid-cols-2 gap-4 mt-2">
+        <div class="bg-white rounded-xl border border-purple-100 p-4">
+          <h3 class="font-bold">Les couleurs bleu/vert ne s’affichent pas</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Rafraîchir en dur (Cmd+Shift+R). Sur iPad, fermer/rouvrir l’onglet.</li>
+            <li>Si besoin, ajouter en fin de <code>app.css</code> des règles “override” proposées dans cette aide.</li>
+          </ul>
+        </div>
+        <div class="bg-white rounded-xl border border-purple-100 p-4">
+          <h3 class="font-bold">Le QR n’apparaît pas</h3>
+          <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+            <li>Vérifier que <code>qrcode.min.js</code> est chargé <b>avant</b> <code>recap.js</code>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4">
+        <h3 class="font-bold text-gray-900">Rappels sécurité</h3>
+        <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+          <li>Échauffement complet et tenue adaptée.</li>
+          <li>Respect des trajectoires et signalement immédiat d’un malaise.</li>
+          <li>Après l’effort : récupération active, hydratation, respect du matériel.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Raccourcis utiles -->
+    <section class="rounded-2xl p-5 border border-gray-200 bg-white">
+      <h2 class="text-xl font-extrabold text-gray-900">Raccourcis & Bonnes pratiques</h2>
+      <ul class="list-disc ml-5 mt-1 text-gray-800 space-y-1">
+        <li><b>Construire un plan progressif</b> (%VMA) : ex. 4:30@80 → 6:00@90 → 3:00@100.</li>
+        <li><b>Adapter l’espacement</b> 12,5 m vs 25 m selon le niveau et la régularité.</li>
+        <li><b>Communiquer la cible</b> plots / 1:30 au coureur avant chaque segment.</li>
+        <li><b>Observer la régularité</b> et ajuster sur la séance suivante.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="text-center py-6 border-t-2 border-gray-200">
+    <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
+  </footer>
 </body></html>
