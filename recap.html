@@ -5,58 +5,37 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Bilan — Mange Plots</title>
 
-  <!-- Tailwind + ton CSS existant (inchangé) -->
+  <!-- CSS existants -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
   <link rel="stylesheet" href="./app.css"/>
 
-  <!-- ⚠️ Lib QR déjà utilisée dans ton app (inchangée) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <!-- Librairie QR en LOCAL (MDM-safe) + fallback CDN si le local manque -->
+  <script src="./vendor/qrcode.min.js"></script>
+  <script>
+    if (!window.QRCode) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>');
+    }
+  </script>
 
-  <!-- Styles non destructifs (inchangés) -->
   <style>
-    :root{
-      --blue-100:#dbeafe; --blue-200:#bfdbfe; --blue-700:#1d4ed8;
-      --green-100:#dcfce7; --green-200:#bbf7d0; --green-700:#15803d;
-      --border:#e5e7eb; --text:#0f172a; --muted:#64748b; --white:#fff;
-    }
-    #recapTables > * { border:1px solid var(--border); border-radius:14px; padding:12px; overflow:auto; }
-    #recapTables > *:nth-child(1){ background:var(--blue-100); }
-    #recapTables > *:nth-child(2){ background:var(--green-100); }
-
-    #recapTables table{ width:100%; border-collapse:separate; border-spacing:0; }
-    #recapTables th{
-      position:sticky; top:0; background:rgba(255,255,255,.6); backdrop-filter:saturate(1.2);
-      text-align:left; font-weight:800; color:var(--text); border-bottom:2px solid var(--border);
-      padding:10px 12px;
-    }
-    #recapTables td{ padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text); }
-    #recapTables tr:nth-child(even) td{ background:rgba(255,255,255,.35); }
-    #recapTables tr:last-child td{ border-bottom:0; }
-
-    #qrButtons{ margin-top:4px; }
-    #qrButtons button{
-      display:block; width:100%; padding:.85rem 1rem; font-weight:800; border-radius:12px;
-      border:1px solid var(--border); color:var(--text); background:var(--blue-100);
-      transition:transform .04s ease;
-    }
-    #qrButtons button:active{ transform:translateY(1px); }
-    #qrButtons > *:nth-child(even) button{ background:var(--green-100); border-color:var(--green-200); }
-    #qrButtons > *:nth-child(odd)  button{ background:var(--blue-100);  border-color:var(--blue-200); }
-
-    #qrModal.modal{
-      position:fixed; inset:0; display:none; align-items:center; justify-content:center;
-      background:rgba(0,0,0,.35); padding:16px; z-index:50;
-    }
-    #qrModal.modal.active{ display:flex; }
-    #qrModal .qrBox{
-      background:var(--white); border:1px solid var(--border); border-radius:16px;
-      padding:16px; box-shadow:0 10px 40px rgba(0,0,0,.15);
-      max-width:90vw; max-height:90vh; overflow:auto;
-    }
-    #qrModal .close{
-      position:absolute; top:18px; right:18px; background:var(--white); color:var(--text);
-      border:1px solid var(--border); border-radius:999px; padding:.45rem .75rem; font-weight:800;
-    }
+    :root{ --blue-100:#dbeafe; --blue-200:#bfdbfe; --green-100:#dcfce7; --green-200:#bbf7d0; --border:#e5e7eb; --text:#0f172a; --white:#fff; }
+    #recapTables > *{border:1px solid var(--border);border-radius:14px;padding:12px;overflow:auto;}
+    #recapTables > *:nth-child(1){background:var(--blue-100);}
+    #recapTables > *:nth-child(2){background:var(--green-100);}
+    #recapTables table{width:100%;border-collapse:separate;border-spacing:0;}
+    #recapTables th{position:sticky;top:0;background:rgba(255,255,255,.6);text-align:left;font-weight:800;color:var(--text);border-bottom:2px solid var(--border);padding:10px 12px;}
+    #recapTables td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+    #recapTables tr:nth-child(even) td{background:rgba(255,255,255,.35);}
+    #recapTables tr:last-child td{border-bottom:0;}
+    #qrButtons{margin-top:4px;}
+    #qrButtons button{display:block;width:100%;padding:.85rem 1rem;font-weight:800;border-radius:12px;border:1px solid var(--border);color:var(--text);background:var(--blue-100);transition:transform .04s ease;}
+    #qrButtons button:active{transform:translateY(1px);}
+    #qrButtons > *:nth-child(even) button{background:var(--green-100);border-color:var(--green-200);}
+    #qrButtons > *:nth-child(odd)  button{background:var(--blue-100); border-color:var(--blue-200);}
+    #qrModal.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);padding:16px;z-index:50;}
+    #qrModal.modal.active{display:flex;}
+    #qrModal .qrBox{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.15);max-width:90vw;max-height:90vh;overflow:auto;}
+    #qrModal .close{position:absolute;top:18px;right:18px;background:var(--white);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:.45rem .75rem;font-weight:800;}
   </style>
 </head>
 <body>
@@ -68,20 +47,20 @@
   <main class="max-w-6xl mx-auto p-4 space-y-6">
     <h1 class="text-3xl font-extrabold">Bilan de la séance</h1>
 
-    <!-- Tableau récap en premier -->
+    <!-- Tableau récap -->
     <section class="card">
       <h2 class="text-xl font-bold mb-3">Récapitulatif</h2>
       <div id="recapTables" class="space-y-6"></div>
     </section>
 
-    <!-- Boutons QR par élève (remplis automatiquement) -->
+    <!-- Boutons QR (par élève / par course) -->
     <section id="qrButtons" class="grid md:grid-cols-2 gap-4"></section>
 
-    <!-- Conteneur QR compact (caché) requis par ScanProf -->
+    <!-- Conteneur QR caché (utile si besoin) -->
     <div id="qrBox" class="hidden"></div>
   </main>
 
-  <!-- Modale QR (fond blanc, grand QR) -->
+  <!-- Modale QR -->
   <div id="qrModal" class="modal">
     <button class="close" id="closeModal">Fermer</button>
     <div class="qrBox">
@@ -93,109 +72,137 @@
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>
 
-  <!-- Tes helpers -->
+  <!-- helpers app -->
   <script src="./app.js"></script>
 
-  <!-- Helpers ScanProf (inline : pas d’appel externe, respecte MDM) -->
+  <!-- Helpers ScanProf (inline, génériques et compacts) -->
   <script>
   (function () {
     function stripAccents(s){return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
-    function toFixedNum(v,d){const n=Number(v);return isFinite(n)?Number(n.toFixed(d)):0;}
+    function toFixed2(v){const n=Number(v);return isFinite(n)?Number(n.toFixed(2)):0;}
     function toInt(v){const n=parseInt(String(v??"").trim(),10);return Number.isFinite(n)?n:0;}
-
-    // 4ème/4eme/4e/4 a -> 4A
     function normalizeClasse(raw){
       let s = stripAccents(String(raw||"")).toUpperCase().replace(/\s+/g,"");
-      s = s.replace(/EME/g,"E");
+      s = s.replace(/EME/g,"E"); // 4EME -> 4E
       const m = s.match(/(\d{1,2})\s*([A-Z])/);
       if(m) return `${m[1]}${m[2]}`;
       const n = s.match(/(\d{1,2})/);
       return n ? `${n[1]}` : s;
     }
+    // Ne JAMAIS inventer de champs : on mappe uniquement ce qui existe vraiment
+    function mapToScanProf(row){
+      // row = une "course/mesure" OU un objet élève contenant les mesures
+      const person = row.person || row; // où se trouvent nom/prenom/classe/sexe
+      const run    = row.run    || row; // où se trouvent distance/vitesse/temps/etc.
 
-    // mappe 1 élève -> format ScanProf (+ extras)
-    function mapOne(raw, keepExtras){
-      const o = {...(raw||{})};
-      const nom = String(o.nom||o.name||o.Nom||"").toUpperCase().trim();
-      const prenom = String(o.prenom||o.Prenom||o.firstName||"").trim();
-      const classe = normalizeClasse(o.classe||o.Classe||o.class||o["classe_eleve"]);
-      let sexe = String(o.sexe||o.Sexe||o.gender||"").trim().toUpperCase();
-      sexe = sexe.startsWith("M")?"M":(sexe.startsWith("F")?"F":"");
-      const distance = toInt(o.distance ?? o.m ?? o["distance_m"]);
-      const vitesse  = toFixedNum(o.vitesse ?? o.speed ?? 0, 2);
-      const leds = {};
-      for(let i=0;i<=5;i++){ leds[`nb_led_${i}`] = toInt(o[`nb_led_${i}`] ?? o[`led_${i}`] ?? 0); }
-      const indice_tir = toFixedNum(o.indice_tir ?? o["indiceTir"] ?? 0, 2);
+      const nom = String(person.nom||person.Nom||person.name||"").toUpperCase().trim();
+      const prenom = String(person.prenom||person.Prenom||person.firstName||"").trim();
+      const classe = normalizeClasse(person.classe||person.Classe||person.class||person["classe_eleve"]);
+      let sexe = String(person.sexe||person.Sexe||person.gender||"").trim().toUpperCase();
+      sexe = sexe.startsWith("F") ? "F" : (sexe.startsWith("M") ? "M" : "");
 
-      let extras;
-      if(keepExtras){
-        const white = new Set(["nom","name","Nom","prenom","Prenom","firstName","classe","Classe","class","classe_eleve","sexe","Sexe","gender","distance","m","distance_m","vitesse","speed","indice_tir","indiceTir","nb_led_0","nb_led_1","nb_led_2","nb_led_3","nb_led_4","nb_led_5","led_0","led_1","led_2","led_3","led_4","led_5"]);
-        extras = {};
-        Object.keys(o).forEach(k=>{ if(!white.has(k)) extras[k]=o[k]; });
-        if(Object.keys(extras).length===0) extras=undefined;
-      }
+      const out = { nom, prenom, classe, sexe };
 
-      return {
-        nom, prenom, classe, sexe, distance, vitesse,
-        nb_led_0: leds.nb_led_0, nb_led_1: leds.nb_led_1, nb_led_2: leds.nb_led_2,
-        nb_led_3: leds.nb_led_3, nb_led_4: leds.nb_led_4, nb_led_5: leds.nb_led_5,
-        indice_tir,
-        ...(extras?{extras}:{})
-      };
+      if (run.distance!=null || run.m!=null || run["distance_m"]!=null)
+        out.distance = toInt(run.distance ?? run.m ?? run["distance_m"]);
+      if (run.vitesse!=null || run.speed!=null)
+        out.vitesse  = toFixed2(run.vitesse ?? run.speed);
+
+      // tout le reste va dans extras (si présent)
+      const extras = {};
+      const baseKeys = new Set(Object.keys(out));
+      Object.keys(run).forEach(k => {
+        if (!baseKeys.has(k) && run[k] !== undefined && run[k] !== null && run[k] !== "")
+          extras[k] = run[k];
+      });
+      // si la couche "person" contient des infos utiles annexes (ex. groupe, piste, etc.)
+      ["temps","time","difficulte","difficoltà","blocs","bloc_reussis","bloc_reussit","vma","session","app"].forEach(k=>{
+        if (person[k]!=null && person[k]!=="") extras[k] = person[k];
+      });
+      if (Object.keys(extras).length) out.extras = extras;
+
+      return out;
     }
 
-    // Génère le QR dans un conteneur donné (utilise qrcodejs déjà chargée)
-    function makeScanProfQR(rows, targetId, opts){
+    function makeQR(payloadRows, targetId, size){
       const el = document.getElementById(targetId);
-      if(!el) return console.error("[ScanProf] conteneur introuvable:", targetId);
+      if (!el) return {ok:false, why:"no-target"};
       el.innerHTML = "";
-      const keepExtras = !!(opts && opts.keepExtras);
-      const list = Array.isArray(rows)? rows : [rows];
-      const payload = JSON.stringify(list.map(r => mapOne(r, keepExtras)));
-      const size = (opts && opts.width) || 256;
-      new QRCode(el, { text: payload, width: size, height: size, correctLevel: QRCode.CorrectLevel.M });
-      return payload;
+      // 1) essayer avec extras
+      try {
+        const text = JSON.stringify(payloadRows.map(mapToScanProf));
+        new QRCode(el, { text, width:size, height:size, correctLevel: QRCode.CorrectLevel.L });
+        return {ok:true};
+      } catch(e1) {
+        // 2) retenter sans extras
+        try {
+          const trimmed = payloadRows.map(r => {
+            const o = mapToScanProf(r);
+            delete o.extras;
+            return o;
+          });
+          const text2 = JSON.stringify(trimmed);
+          new QRCode(el, { text: text2, width:size, height:size, correctLevel: QRCode.CorrectLevel.L });
+          return {ok:true, trimmed:true};
+        } catch(e2) {
+          return {ok:false, why:"overflow"};
+        }
+      }
     }
 
-    // UI : boutons + modale + QR compact caché
-    function renderScanProfUI(rows){
-      const list  = Array.isArray(rows)? rows : [rows];
+    // Crée des boutons : 1 élève peut avoir 1..n "courses/mesures"
+    function renderScanProfUI(list){
+      const data = Array.isArray(list)? list : [list];
       const btns  = document.getElementById("qrButtons");
       const modal = document.getElementById("qrModal");
       const full  = document.getElementById("qrFull");
       const close = document.getElementById("closeModal");
       if(!btns || !modal || !full || !close){ console.warn("[ScanProf] UI manquante."); return; }
       btns.innerHTML = "";
-      list.forEach((raw, i)=>{
-        const mapped = mapOne(raw, true);
-        const wrap = document.createElement("div");
-        const b = document.createElement("button");
-        const label = `${mapped.prenom||""} ${mapped.nom||""} — ${mapped.classe||""}`.trim();
-        b.textContent = `📱 QR • ${label || ("Élève "+(i+1))}`;
-        b.addEventListener("click", ()=>{
-          full.innerHTML = "";
-          makeScanProfQR([raw], "qrFull", { width:640, keepExtras:true });
-          modal.classList.add("active");
+
+      data.forEach(person => {
+        // détecter des mesures : runs / courses / mesures / course
+        let runs = [];
+        if (Array.isArray(person.runs)) runs = person.runs;
+        else if (Array.isArray(person.courses)) runs = person.courses;
+        else if (Array.isArray(person.mesures)) runs = person.mesures;
+        else if (person.course) runs = [person.course];
+        else runs = [person]; // fallback : les champs sont directs
+
+        runs.forEach((run, idx) => {
+          const wrap = document.createElement("div");
+          const btn  = document.createElement("button");
+          const nom   = String(person.nom||person.Nom||person.name||"").toUpperCase().trim();
+          const prenom= String(person.prenom||person.Prenom||person.firstName||"").trim();
+          const classe= normalizeClasse(person.classe||person.Classe||person.class||person["classe_eleve"]);
+          btn.textContent = `📱 QR • ${prenom} ${nom} — ${classe} • Mesure ${idx+1}`;
+          btn.addEventListener("click", ()=>{
+            full.innerHTML = "";
+            const res = makeQR([{ person, run }], "qrFull", 640);
+            if (!res.ok) {
+              full.innerHTML = "<div style='max-width:28rem'><p><strong>QR trop volumineux</strong>.<br/>" +
+                "Réduction impossible. Essaie d’envoyer cette mesure sans champs annexes.</p></div>";
+            } else {
+              modal.classList.add("active");
+            }
+          });
+          wrap.appendChild(btn);
+          btns.appendChild(wrap);
         });
-        wrap.appendChild(b);
-        btns.appendChild(wrap);
       });
+
       close.addEventListener("click", ()=> modal.classList.remove("active"));
       modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.remove("active"); });
-
-      // QR compact caché (multi-élèves) — utile si téléchargement plus tard
-      try{ makeScanProfQR(list, "qrBox", { width:256, keepExtras:true }); }catch(e){}
     }
 
-    // Expose pour le script d'init plus bas
     window.renderScanProfUI = renderScanProfUI;
   })();
   </script>
 
-  <!-- Ton script récap (inchangé) -->
+  <!-- Ton recap.js -->
   <script src="./recap.js"></script>
 
-  <!-- INIT : sans toucher recap.js — récupère la liste depuis variables globales ou localStorage -->
+  <!-- Initialisation : récupère la liste depuis variables globales ou localStorage -->
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     let data = window.eleves || window.rows || window.liste;
