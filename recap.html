@@ -5,29 +5,24 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Bilan — Mange Plots</title>
 
-  <!-- Tailwind + ton CSS existant -->
+  <!-- Tailwind + ton CSS existant (inchangé) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
   <link rel="stylesheet" href="./app.css"/>
 
-  <!-- ⚠️ LIB QR OBLIGATOIRE, CHARGÉE AVANT recap.js -->
+  <!-- ⚠️ Lib QR déjà utilisée dans ton app (inchangée) -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
-  <!-- Styles non destructifs (couleurs douces, lisibilité, sans toucher au JS) -->
+  <!-- Styles non destructifs (inchangés) -->
   <style>
     :root{
       --blue-100:#dbeafe; --blue-200:#bfdbfe; --blue-700:#1d4ed8;
       --green-100:#dcfce7; --green-200:#bbf7d0; --green-700:#15803d;
       --border:#e5e7eb; --text:#0f172a; --muted:#64748b; --white:#fff;
     }
-    /* Cartes récap : 1er bloc = bleu clair, 2e bloc = vert clair */
-    #recapTables > * {
-      border:1px solid var(--border); border-radius:14px; padding:12px;
-      overflow:auto;
-    }
+    #recapTables > * { border:1px solid var(--border); border-radius:14px; padding:12px; overflow:auto; }
     #recapTables > *:nth-child(1){ background:var(--blue-100); }
     #recapTables > *:nth-child(2){ background:var(--green-100); }
 
-    /* Tables : header marqué, zébrage doux, cellules respirantes */
     #recapTables table{ width:100%; border-collapse:separate; border-spacing:0; }
     #recapTables th{
       position:sticky; top:0; background:rgba(255,255,255,.6); backdrop-filter:saturate(1.2);
@@ -38,7 +33,6 @@
     #recapTables tr:nth-child(even) td{ background:rgba(255,255,255,.35); }
     #recapTables tr:last-child td{ border-bottom:0; }
 
-    /* Boutons QR auto-stylés (sans changer recap.js) */
     #qrButtons{ margin-top:4px; }
     #qrButtons button{
       display:block; width:100%; padding:.85rem 1rem; font-weight:800; border-radius:12px;
@@ -49,7 +43,6 @@
     #qrButtons > *:nth-child(even) button{ background:var(--green-100); border-color:var(--green-200); }
     #qrButtons > *:nth-child(odd)  button{ background:var(--blue-100);  border-color:var(--blue-200); }
 
-    /* Modale QR : centrée, fond blanc propre */
     #qrModal.modal{
       position:fixed; inset:0; display:none; align-items:center; justify-content:center;
       background:rgba(0,0,0,.35); padding:16px; z-index:50;
@@ -81,8 +74,11 @@
       <div id="recapTables" class="space-y-6"></div>
     </section>
 
-    <!-- Boutons QR par élève -->
+    <!-- Boutons QR par élève (remplis automatiquement) -->
     <section id="qrButtons" class="grid md:grid-cols-2 gap-4"></section>
+
+    <!-- Conteneur QR compact (caché) requis par ScanProf -->
+    <div id="qrBox" class="hidden"></div>
   </main>
 
   <!-- Modale QR (fond blanc, grand QR) -->
@@ -97,8 +93,127 @@
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>
 
-  <!-- Tes helpers + recap.js (ordre inchangé) -->
+  <!-- Tes helpers -->
   <script src="./app.js"></script>
+
+  <!-- Helpers ScanProf (inline : pas d’appel externe, respecte MDM) -->
+  <script>
+  (function () {
+    function stripAccents(s){return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
+    function toFixedNum(v,d){const n=Number(v);return isFinite(n)?Number(n.toFixed(d)):0;}
+    function toInt(v){const n=parseInt(String(v??"").trim(),10);return Number.isFinite(n)?n:0;}
+
+    // 4ème/4eme/4e/4 a -> 4A
+    function normalizeClasse(raw){
+      let s = stripAccents(String(raw||"")).toUpperCase().replace(/\s+/g,"");
+      s = s.replace(/EME/g,"E");
+      const m = s.match(/(\d{1,2})\s*([A-Z])/);
+      if(m) return `${m[1]}${m[2]}`;
+      const n = s.match(/(\d{1,2})/);
+      return n ? `${n[1]}` : s;
+    }
+
+    // mappe 1 élève -> format ScanProf (+ extras)
+    function mapOne(raw, keepExtras){
+      const o = {...(raw||{})};
+      const nom = String(o.nom||o.name||o.Nom||"").toUpperCase().trim();
+      const prenom = String(o.prenom||o.Prenom||o.firstName||"").trim();
+      const classe = normalizeClasse(o.classe||o.Classe||o.class||o["classe_eleve"]);
+      let sexe = String(o.sexe||o.Sexe||o.gender||"").trim().toUpperCase();
+      sexe = sexe.startsWith("M")?"M":(sexe.startsWith("F")?"F":"");
+      const distance = toInt(o.distance ?? o.m ?? o["distance_m"]);
+      const vitesse  = toFixedNum(o.vitesse ?? o.speed ?? 0, 2);
+      const leds = {};
+      for(let i=0;i<=5;i++){ leds[`nb_led_${i}`] = toInt(o[`nb_led_${i}`] ?? o[`led_${i}`] ?? 0); }
+      const indice_tir = toFixedNum(o.indice_tir ?? o["indiceTir"] ?? 0, 2);
+
+      let extras;
+      if(keepExtras){
+        const white = new Set(["nom","name","Nom","prenom","Prenom","firstName","classe","Classe","class","classe_eleve","sexe","Sexe","gender","distance","m","distance_m","vitesse","speed","indice_tir","indiceTir","nb_led_0","nb_led_1","nb_led_2","nb_led_3","nb_led_4","nb_led_5","led_0","led_1","led_2","led_3","led_4","led_5"]);
+        extras = {};
+        Object.keys(o).forEach(k=>{ if(!white.has(k)) extras[k]=o[k]; });
+        if(Object.keys(extras).length===0) extras=undefined;
+      }
+
+      return {
+        nom, prenom, classe, sexe, distance, vitesse,
+        nb_led_0: leds.nb_led_0, nb_led_1: leds.nb_led_1, nb_led_2: leds.nb_led_2,
+        nb_led_3: leds.nb_led_3, nb_led_4: leds.nb_led_4, nb_led_5: leds.nb_led_5,
+        indice_tir,
+        ...(extras?{extras}:{})
+      };
+    }
+
+    // Génère le QR dans un conteneur donné (utilise qrcodejs déjà chargée)
+    function makeScanProfQR(rows, targetId, opts){
+      const el = document.getElementById(targetId);
+      if(!el) return console.error("[ScanProf] conteneur introuvable:", targetId);
+      el.innerHTML = "";
+      const keepExtras = !!(opts && opts.keepExtras);
+      const list = Array.isArray(rows)? rows : [rows];
+      const payload = JSON.stringify(list.map(r => mapOne(r, keepExtras)));
+      const size = (opts && opts.width) || 256;
+      new QRCode(el, { text: payload, width: size, height: size, correctLevel: QRCode.CorrectLevel.M });
+      return payload;
+    }
+
+    // UI : boutons + modale + QR compact caché
+    function renderScanProfUI(rows){
+      const list  = Array.isArray(rows)? rows : [rows];
+      const btns  = document.getElementById("qrButtons");
+      const modal = document.getElementById("qrModal");
+      const full  = document.getElementById("qrFull");
+      const close = document.getElementById("closeModal");
+      if(!btns || !modal || !full || !close){ console.warn("[ScanProf] UI manquante."); return; }
+      btns.innerHTML = "";
+      list.forEach((raw, i)=>{
+        const mapped = mapOne(raw, true);
+        const wrap = document.createElement("div");
+        const b = document.createElement("button");
+        const label = `${mapped.prenom||""} ${mapped.nom||""} — ${mapped.classe||""}`.trim();
+        b.textContent = `📱 QR • ${label || ("Élève "+(i+1))}`;
+        b.addEventListener("click", ()=>{
+          full.innerHTML = "";
+          makeScanProfQR([raw], "qrFull", { width:640, keepExtras:true });
+          modal.classList.add("active");
+        });
+        wrap.appendChild(b);
+        btns.appendChild(wrap);
+      });
+      close.addEventListener("click", ()=> modal.classList.remove("active"));
+      modal.addEventListener("click", (e)=>{ if(e.target===modal) modal.classList.remove("active"); });
+
+      // QR compact caché (multi-élèves) — utile si téléchargement plus tard
+      try{ makeScanProfQR(list, "qrBox", { width:256, keepExtras:true }); }catch(e){}
+    }
+
+    // Expose pour le script d'init plus bas
+    window.renderScanProfUI = renderScanProfUI;
+  })();
+  </script>
+
+  <!-- Ton script récap (inchangé) -->
   <script src="./recap.js"></script>
+
+  <!-- INIT : sans toucher recap.js — récupère la liste depuis variables globales ou localStorage -->
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let data = window.eleves || window.rows || window.liste;
+    if (!Array.isArray(data) || !data.length) {
+      try {
+        const raw = localStorage.getItem('eleves')
+          || localStorage.getItem('participants')
+          || localStorage.getItem('mangeplots_eleve')
+          || '[]';
+        data = JSON.parse(raw);
+      } catch(e) { data = []; }
+    }
+    if (Array.isArray(data) && data.length) {
+      window.renderScanProfUI(data);
+    } else {
+      console.warn('Aucune donnée élève détectée pour le QR.');
+    }
+  });
+  </script>
 </body>
 </html>
