@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Course — Mange Plots</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
-<link rel="stylesheet" href="./app.css"/>
+<link rel="stylesheet" href="./app.css?v=mp-2025-10-21-3"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noSleep/0.12.0/NoSleep.min.js"></script>
 <style>
   /* Pastilles visibles par défaut (fallback) */
@@ -109,7 +109,7 @@
       <button id="btnStart" class="btn btn-primary text-lg px-6">Démarrer</button>
     </section>
 
-    <!-- Fin de course : pas d’auto-avance -->
+    <!-- Fin de course : pas d’auto-avance (1ʳᵉ occurrence seulement) -->
     <section id="afterCourse" class="hidden flex justify-center gap-3">
       <button id="nextCourse" class="btn btn-primary">Passer à la course suivante</button>
     </section>
@@ -119,7 +119,8 @@
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>
 
-  <script src="./app.js"></script>
-  <script src="./run.js"></script>
+  <!-- cache-buster pour contourner le cache iPad/MDM -->
+  <script src="./app.js?v=mp-2025-10-21-3"></script>
+  <script src="./run.js?v=mp-2025-10-21-3"></script>
 </body>
 </html>
