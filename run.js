@@ -1,9 +1,9 @@
 // =====================
 //  Mange Plots — run.js (pacer simple, ±1 plot vert, fin 1re course manuelle, 2e course → récap)
-//  build: mp-2025-10-21-4
+//  build: mp-2025-10-21-5
 // =====================
 
-console.log("run.js build mp-2025-10-21-4");
+console.log("run.js build mp-2025-10-21-5");
 
 const $ = (s) => document.querySelector(s);
 const pack = loadJSON(KEY_RUNNERS, null);
@@ -303,16 +303,15 @@ $("#btnMinus").addEventListener("click", ()=>{ if(!running) return; if(subPlots>
 $("#btnStart").addEventListener("click", startCourse);
 if (chkPacer) chkPacer.addEventListener('change', updatePacerUI);
 
-// passe à la course suivante uniquement sur clic, puis réactive proprement
+// 👉 Toujours réafficher Démarrer quand on passe à la course suivante
 if (nextCourse) nextCourse.addEventListener('click', ()=>{
   advanceAfterCourse();
 
-  // si on n'est pas à la dernière occurrence, on prépare la nouvelle
-  if (!isLastCourseInstance()) {
-    btnStart.disabled = false;            // prêt à démarrer la nouvelle course
-    btnStart.style.display = '';          // ré-affiche "Démarrer"
-    if (afterCourse) afterCourse.classList.add("hidden");
-  }
+  // on prépare la nouvelle course : Démarrer visible et actif quoi qu'il arrive
+  btnStart.disabled = false;
+  btnStart.style.display = '';
+  if (afterCourse) afterCourse.classList.add("hidden");
+
   // reset compteurs visuels
   subPlots = 0;
   elapsedSec = 0;
