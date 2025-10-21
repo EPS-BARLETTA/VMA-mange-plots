@@ -1,5 +1,5 @@
 // =====================
-//  Mange Plots — run.js (pacer correct + options + fin manuelle)
+//  Mange Plots — run.js (pacer correct + pastilles par défaut + fin manuelle)
 // =====================
 
 const $ = (s) => document.querySelector(s);
@@ -34,37 +34,31 @@ const elPacerDelta     = $("#pacerDelta");
 const elPacerDeltaM    = $("#pacerDeltaM");
 let   elPacerRabbitIcon = $("#pacerRabbitIcon");
 let   elPacerRunnerIcon = $("#pacerRunnerIcon");
-const chkPacer         = $("#togglePacer");
+const elPacerRabbitDot  = $("#pacerRabbitDot");
+const elPacerRunnerDot  = $("#pacerRunnerDot");
+const chkPacer          = $("#togglePacer");
 
 // Fin manuelle
 const afterCourse = $("#afterCourse");
 const nextCourse  = $("#nextCourse");
 
-// Icônes locales (orientées vers la droite)
+// Icônes locales (si présentes)
 const RABBIT_SRC = "./img/rabbit-right.png";
 const RUNNER_SRC = "./img/runner-right.png";
 
-// Fallback pastilles si images bloquées / manquantes
-function makeDot(el, className) {
-  if (!el || !el.parentElement) return el;
-  const dot = document.createElement("div");
-  dot.className = `pacer-dot ${className}`;
-  dot.style.left = el.style.left || "0%";
-  el.parentElement.appendChild(dot);
-  el.remove();
-  return dot;
-}
+// Images masquées par défaut : on les affiche uniquement si onload réussi
 function setupIcons() {
   if (elPacerRabbitIcon) {
+    elPacerRabbitIcon.onload  = () => { elPacerRabbitIcon.style.display = 'block'; };
+    elPacerRabbitIcon.onerror = () => { elPacerRabbitIcon.remove(); elPacerRabbitIcon = null; };
     elPacerRabbitIcon.src = RABBIT_SRC;
-    elPacerRabbitIcon.onerror = () => { elPacerRabbitIcon = makeDot(elPacerRabbitIcon, "pacer-rabbit-dot"); };
     elPacerRabbitIcon.style.transform = "translateX(-50%)"; // sens droite
   }
   if (elPacerRunnerIcon) {
+    elPacerRunnerIcon.onload  = () => { elPacerRunnerIcon.style.display = 'block'; };
+    elPacerRunnerIcon.onerror = () => { elPacerRunnerIcon.remove(); elPacerRunnerIcon = null; };
     elPacerRunnerIcon.src = RUNNER_SRC;
-    elPacerRunnerIcon.onerror = () => { elPacerRunnerIcon = makeDot(elPacerRunnerIcon, "pacer-runner-dot"); };
-    // certains PNG/emoji regardent à gauche : on force le miroir si besoin
-    elPacerRunnerIcon.style.transform = "translateX(-50%) scaleX(-1)";
+    elPacerRunnerIcon.style.transform = "translateX(-50%) scaleX(-1)"; // force regard à droite si besoin
   }
 }
 setupIcons();
@@ -103,8 +97,8 @@ function beep(freq=1000, dur=0.08, vol=0.05){
 }
 
 // ========================
-// PACER (temps → position, temps → plots)
-–========================
+// PACER (temps → position + prédictif)
+// ========================
 function targetSpeedKmh(){ const r=currentRunner(), b=currentCourse(); return r.vma*(b.pctVMA/100); }
 function targetSpeedMps(){ return targetSpeedKmh()*1000/3600; }
 function plotsPerSecond(){ const s=pack.spacing_m||12.5; return targetSpeedMps()/s; }
@@ -118,19 +112,22 @@ function updatePacerUI(){
   if (chkPacer && elPacerWrap) elPacerWrap.classList.toggle("hidden", !chkPacer.checked);
   if (!elPacerBar || (chkPacer && !chkPacer.checked)) return;
 
-  const total   = Math.max(1e-6, totalExpectedPlots());
-  const rabbitCumul = plotsPerSecond() * elapsedSec;       // plots “prévus” à t secondes
-  const runnerCumul = runnerPlotsCumul();
+  const total         = Math.max(1e-6, totalExpectedPlots());
+  const rabbitCumul   = plotsPerSecond() * elapsedSec;        // prévu à t secondes
+  const runnerCumul   = runnerPlotsCumul();
 
-  // --- Position visuelle basée sur le TEMPS (coïncide avec la durée)
+  // --- Position visuelle du lièvre basée sur le TEMPS (coïncide avec la durée)
   const timeFrac = Math.min(1, courseDur ? elapsedSec / courseDur : 0);
-  const posRabbit = timeFrac * 100;                                       // 0→100% sur la durée
-  const posRunner = Math.max(0, Math.min(100, (runnerCumul/total)*100));  // coureur = réalisé/attendu
+  const posRabbit = timeFrac * 100;                                         // 0→100% sur la durée
+  const posRunner = Math.max(0, Math.min(100, (runnerCumul/total)*100));    // coureur = réalisé/attendu
 
-  // Poser icônes + badge
-  if (elPacerRabbitIcon) elPacerRabbitIcon.style.left = posRabbit + "%";
-  if (elPacerRunnerIcon) elPacerRunnerIcon.style.left = posRunner + "%";
-  if (elPacerBadge)       elPacerBadge.style.left     = posRabbit + "%";
+  // Mettre à jour icônes + pastilles + badge
+  const setLeft = (el, v) => { if(el) el.style.left = v + "%"; };
+  setLeft(elPacerRabbitDot, posRabbit);
+  setLeft(elPacerRunnerDot, posRunner);
+  setLeft(elPacerRabbitIcon, posRabbit);
+  setLeft(elPacerRunnerIcon, posRunner);
+  setLeft(elPacerBadge, posRabbit);
 
   // --- BADGE : retard immédiat dans le BLOC courant (0→90s)
   const needNow = Math.max(0, Math.round(plotsPerSecond()*subElapsedSec - subPlots));
@@ -239,8 +236,7 @@ function loop(){
   if (elapsedSec >= courseDur) {
     if (subElapsedSec > 0 && subElapsedSec < 90) saveSub();
     running=false;
-    // NE PAS auto-avancer : montrer les boutons d’action
-    if (afterCourse) afterCourse.classList.remove("hidden");
+    if (afterCourse) afterCourse.classList.remove("hidden"); // fin manuelle
     btnStart.disabled = true;
     refreshUI();
     return;
@@ -269,10 +265,8 @@ $("#btnStart").addEventListener("click", ()=>{
 if (chkPacer) chkPacer.addEventListener('change', updatePacerUI);
 
 if (nextCourse) nextCourse.addEventListener('click', ()=>{
-  // passe aux courses suivantes (comme avant, mais sur clic)
-  advanceAfterCourse();
-  // prêt pour lancer la suivante
-  btnStart.disabled = false;
+  advanceAfterCourse();           // passe à la suivante uniquement sur clic
+  btnStart.disabled = false;      // prêt à démarrer la nouvelle
 });
 
 // ========================
