@@ -55,30 +55,38 @@
 
     <!-- Lièvre vs Coureur -->
     <section class="card">
-      <div class="text-center space-y-2 max-w-3xl mx-auto">
+      <div class="text-center space-y-3 max-w-3xl mx-auto">
+        <div class="flex items-center justify-center gap-3 text-sm">
+          <label for="togglePacer" class="font-semibold">Activer le lièvre</label>
+          <input id="togglePacer" type="checkbox" class="w-5 h-5" checked>
+        </div>
+
         <h2 class="text-xl font-extrabold">Lièvre (projet) vs Coureur</h2>
 
         <!-- Barre globale : overflow-visible + h-6 -->
-        <div id="pacerBar" class="relative h-6 rounded-full bg-gray-200 overflow-visible mx-auto" style="max-width:720px">
-          <div id="pacerTrack" class="absolute inset-0"></div>
+        <div id="pacerWrap" class="mx-auto" style="max-width:720px">
+          <div id="pacerBar" class="relative h-6 rounded-full bg-gray-200 overflow-visible">
+            <div id="pacerTrack" class="absolute inset-0"></div>
 
-          <!-- Icône lièvre -->
-          <img id="pacerRabbitIcon" alt="Lièvre"
-               class="absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
-               style="left:0%" />
+            <!-- Icône lièvre (image locale) -->
+            <img id="pacerRabbitIcon" alt="Lièvre"
+                 class="absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
+                 style="left:0%" />
 
-          <!-- Badge lièvre : plots à "manger" dans le bloc courant -->
-          <div id="pacerBadge"
-               class="absolute -top-12 px-2 py-1 rounded-lg text-sm font-bold text-gray-900 bg-blue-100 border border-blue-200 transform -translate-x-1/2 shadow-sm"
-               style="left:0%">+0 plots</div>
+            <!-- Badge lièvre : retard immédiat dans le bloc courant -->
+            <div id="pacerBadge"
+                 class="absolute -top-12 px-2 py-1 rounded-lg text-sm font-bold text-gray-900 bg-blue-100 border border-blue-200 transform -translate-x-1/2 shadow-sm"
+                 style="left:0%">+0 plots</div>
 
-          <!-- Icône coureur -->
-          <img id="pacerRunnerIcon" alt="Coureur"
-               class="absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
-               style="left:0%" />
+            <!-- Icône coureur -->
+            <img id="pacerRunnerIcon" alt="Coureur"
+                 class="absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
+                 style="left:0%" />
+          </div>
         </div>
 
-        <div class="mt-2 text-sm text-gray-800 space-x-2">
+        <!-- Légende -->
+        <div class="mt-1 text-sm text-gray-800 space-x-2">
           <span>Attendu total : <b><span id="pacerTotal">—</span></b> plots</span>
           <span>• Lièvre : <b><span id="pacerRabbitNow">—</span></b></span>
           <span>• Coureur : <b><span id="pacerRunnerNow">—</span></b></span>
@@ -90,17 +98,23 @@
     <!-- Compteur plots -->
     <section id="counterPanel" class="counter-panel">
       <div class="grid grid-cols-3 gap-4 items-center max-w-sm mx-auto">
-        <button id="btnMinus" class="counter-btn bg-red-100 text-gray-900 rounded-xl">−</button>
+        <button id="btnMinus" class="counter-btn bg-red-100 text-gray-900 rounded-xl text-2xl">➖</button>
         <div class="text-center">
           <div class="text-sm mb-1">Plots (sous-bloc)</div>
           <div id="counter" class="text-6xl font-extrabold">0</div>
         </div>
-        <button id="btnPlus" class="counter-btn bg-green-100 text-gray-900 rounded-xl">+</button>
+        <button id="btnPlus" class="counter-btn bg-green-100 text-gray-900 rounded-xl text-2xl">➕</button>
       </div>
     </section>
 
     <section class="flex justify-center gap-3">
       <button id="btnStart" class="btn btn-primary text-lg px-6">Démarrer</button>
+    </section>
+
+    <!-- Fin de course : pas d’auto-avance -->
+    <section id="afterCourse" class="hidden flex justify-center gap-3">
+      <button id="nextCourse" class="btn btn-primary">Passer à la course suivante</button>
+      <a href="./recap.html" class="btn btn-ghost">Voir récap</a>
     </section>
   </main>
 
