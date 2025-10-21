@@ -1,5 +1,5 @@
 // =====================
-//  Mange Plots — run.js (pacer correct + pastilles par défaut + fin manuelle)
+//  Mange Plots — run.js (pacer simple, ±1 plot vert, fin 1re course manuelle, 2e course → récap)
 // =====================
 
 const $ = (s) => document.querySelector(s);
@@ -26,7 +26,6 @@ const elTimer = $("#timer"), elSubLeft = $("#subLeft"), elSubFill = $("#subFill"
 const elPacerWrap      = $("#pacerWrap");
 const elPacerBar       = $("#pacerBar");
 const elPacerTrack     = $("#pacerTrack");
-const elPacerBadge     = $("#pacerBadge");
 const elPacerTotal     = $("#pacerTotal");
 const elPacerRabbitNow = $("#pacerRabbitNow");
 const elPacerRunnerNow = $("#pacerRunnerNow");
@@ -52,13 +51,13 @@ function setupIcons() {
     elPacerRabbitIcon.onload  = () => { elPacerRabbitIcon.style.display = 'block'; };
     elPacerRabbitIcon.onerror = () => { elPacerRabbitIcon.remove(); elPacerRabbitIcon = null; };
     elPacerRabbitIcon.src = RABBIT_SRC;
-    elPacerRabbitIcon.style.transform = "translateX(-50%)"; // sens droite
+    elPacerRabbitIcon.style.transform = "translateX(-50%)";
   }
   if (elPacerRunnerIcon) {
     elPacerRunnerIcon.onload  = () => { elPacerRunnerIcon.style.display = 'block'; };
     elPacerRunnerIcon.onerror = () => { elPacerRunnerIcon.remove(); elPacerRunnerIcon = null; };
     elPacerRunnerIcon.src = RUNNER_SRC;
-    elPacerRunnerIcon.style.transform = "translateX(-50%) scaleX(-1)"; // force regard à droite si besoin
+    elPacerRunnerIcon.style.transform = "translateX(-50%) scaleX(-1)";
   }
 }
 setupIcons();
@@ -84,6 +83,16 @@ function plotsTargetPer90(speed_kmh, spacing_m){ const kmh_per_plot = (spacing_m
 function targetPlotsPer90(){ const r=currentRunner(), b=currentCourse(); const v=r.vma*(b.pctVMA/100); return plotsTargetPer90(v, pack.spacing_m); }
 function setPanelAlt(){ panel.classList.toggle("alt", Math.floor(subElapsedSec/90)%2===1); }
 
+// Dernière occurrence de course ?
+// - solo : dernier si planIdx==plan.length-1
+// - duo  : dernier uniquement quand c'est B sur le dernier plan
+function isLastCourseInstance(){
+  if (order.length===2){
+    return (orderIdx===1) && (planIdx >= plan.length-1);
+  }
+  return (planIdx >= plan.length-1);
+}
+
 // ========================
 // AUDIO
 // ========================
@@ -97,14 +106,12 @@ function beep(freq=1000, dur=0.08, vol=0.05){
 }
 
 // ========================
-// PACER (temps → position + prédictif)
+// PACER (temps → position + couleur tolérance ±1 plot)
 // ========================
 function targetSpeedKmh(){ const r=currentRunner(), b=currentCourse(); return r.vma*(b.pctVMA/100); }
 function targetSpeedMps(){ return targetSpeedKmh()*1000/3600; }
 function plotsPerSecond(){ const s=pack.spacing_m||12.5; return targetSpeedMps()/s; }
 function totalExpectedPlots(){ const sec=mmssToSecondsLocal(currentCourse().duree); return plotsPerSecond()*sec; }
-
-// cumul coureur (toutes tranches)
 function runnerPlotsCumul(){ const done=partsBuffer.reduce((sum,p)=> sum+(p.actual||0), 0); return done + subPlots; }
 
 function updatePacerUI(){
@@ -116,41 +123,29 @@ function updatePacerUI(){
   const rabbitCumul   = plotsPerSecond() * elapsedSec;        // prévu à t secondes
   const runnerCumul   = runnerPlotsCumul();
 
-  // --- Position visuelle du lièvre basée sur le TEMPS (coïncide avec la durée)
-  const timeFrac = Math.min(1, courseDur ? elapsedSec / courseDur : 0);
-  const posRabbit = timeFrac * 100;                                         // 0→100% sur la durée
-  const posRunner = Math.max(0, Math.min(100, (runnerCumul/total)*100));    // coureur = réalisé/attendu
+  // Position du lièvre basée sur le TEMPS (0→100% sur la durée)
+  const timeFrac   = Math.min(1, courseDur ? elapsedSec / courseDur : 0);
+  const posRabbit  = timeFrac * 100;
+  const posRunner  = Math.max(0, Math.min(100, (runnerCumul/total)*100));
 
-  // Mettre à jour icônes + pastilles + badge
+  // Mettre à jour icônes + pastilles
   const setLeft = (el, v) => { if(el) el.style.left = v + "%"; };
   setLeft(elPacerRabbitDot, posRabbit);
   setLeft(elPacerRunnerDot, posRunner);
   setLeft(elPacerRabbitIcon, posRabbit);
   setLeft(elPacerRunnerIcon, posRunner);
-  setLeft(elPacerBadge, posRabbit);
 
-  // --- BADGE : retard immédiat dans le BLOC courant (0→90s)
-  const needNow = Math.max(0, Math.round(plotsPerSecond()*subElapsedSec - subPlots));
-  if (elPacerBadge) {
-    elPacerBadge.textContent = (needNow>0?'+':'0') + ' plots';
-    elPacerBadge.style.backgroundColor = needNow===0 ? '#d1fae5' : '#dbeafe';
-    elPacerBadge.style.borderColor     = needNow===0 ? '#a7f3d0' : '#bfdbfe';
-  }
+  // Couleur piste : VERT si |delta| <= 1 plot, sinon ROUGE
+  const deltaPlots = runnerCumul - rabbitCumul;
+  const ok = Math.abs(deltaPlots) <= 1;
+  if (elPacerTrack) elPacerTrack.style.background = ok ? "rgba(34,197,94,.25)" : "rgba(239,68,68,.25)";
 
-  // Couleur piste selon écart cumul global
-  const delta = runnerCumul - rabbitCumul;
-  const tol   = total * 0.01;
-  let color = "rgba(245,245,245,1)";
-  if (delta >  tol) color = "rgba(34,197,94,.25)";
-  if (delta < -tol) color = "rgba(239,68,68,.25)";
-  if (elPacerTrack) elPacerTrack.style.background = color;
-
-  // Légendes
+  // Légendes cumul
   if (elPacerTotal)     elPacerTotal.textContent     = Math.round(total);
   if (elPacerRabbitNow) elPacerRabbitNow.textContent = Math.round(rabbitCumul);
   if (elPacerRunnerNow) elPacerRunnerNow.textContent = Math.round(runnerCumul);
-  if (elPacerDelta)     elPacerDelta.textContent     = (delta>0?'+':'') + Math.round(delta);
-  if (elPacerDeltaM)    elPacerDeltaM.textContent    = Math.round(delta * (pack.spacing_m||12.5));
+  if (elPacerDelta)     elPacerDelta.textContent     = (deltaPlots>0?'+':'') + Math.round(deltaPlots);
+  if (elPacerDeltaM)    elPacerDeltaM.textContent    = Math.round(deltaPlots * (pack.spacing_m||12.5));
 }
 
 // ========================
@@ -204,10 +199,16 @@ function advanceAfterCourse(){
 
   partsBuffer=[]; subPlots=0;
 
-  if(order.length===2){ orderIdx=(orderIdx+1)%2; if(orderIdx===0) planIdx++; }
-  else { planIdx++; }
+  if(order.length===2){
+    orderIdx=(orderIdx+1)%2;
+    if(orderIdx===0) planIdx++;
+  } else {
+    planIdx++;
+  }
 
-  if(planIdx>=plan.length){ location.href="./recap.html"; return; }
+  if(planIdx>=plan.length){
+    location.href="./recap.html"; return;
+  }
 
   const sec = mmssToSecondsLocal(currentCourse().duree);
   courseDur = sec; elapsedSec=0; subElapsedSec=0;
@@ -236,10 +237,18 @@ function loop(){
   if (elapsedSec >= courseDur) {
     if (subElapsedSec > 0 && subElapsedSec < 90) saveSub();
     running=false;
-    if (afterCourse) afterCourse.classList.remove("hidden"); // fin manuelle
-    btnStart.disabled = true;
-    refreshUI();
-    return;
+
+    // Fin : si dernière occurrence -> avance et potentiellement récap,
+    // sinon on affiche "Passer à la course suivante" uniquement.
+    if (isLastCourseInstance()) {
+      advanceAfterCourse(); // cela enverra au récap si c'était la dernière
+      return;
+    } else {
+      if (afterCourse) afterCourse.classList.remove("hidden");
+      btnStart.disabled = true;
+      refreshUI();
+      return;
+    }
   }
 
   refreshUI();
