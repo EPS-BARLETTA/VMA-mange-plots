@@ -1,5 +1,5 @@
 // =====================
-//  Mange Plots — run.js (MDM-friendly)
+//  Mange Plots — run.js (pacer correct + options + fin manuelle)
 // =====================
 
 const $ = (s) => document.querySelector(s);
@@ -23,18 +23,24 @@ const elTimer = $("#timer"), elSubLeft = $("#subLeft"), elSubFill = $("#subFill"
       btnStart = $("#btnStart");
 
 // ===== PACER DOM =====
-const elPacerBar        = $("#pacerBar");
-const elPacerTrack      = $("#pacerTrack");
-const elPacerBadge      = $("#pacerBadge");
-const elPacerTotal      = $("#pacerTotal");
-const elPacerRabbitNow  = $("#pacerRabbitNow");
-const elPacerRunnerNow  = $("#pacerRunnerNow");
-const elPacerDelta      = $("#pacerDelta");
-const elPacerDeltaM     = $("#pacerDeltaM");
+const elPacerWrap      = $("#pacerWrap");
+const elPacerBar       = $("#pacerBar");
+const elPacerTrack     = $("#pacerTrack");
+const elPacerBadge     = $("#pacerBadge");
+const elPacerTotal     = $("#pacerTotal");
+const elPacerRabbitNow = $("#pacerRabbitNow");
+const elPacerRunnerNow = $("#pacerRunnerNow");
+const elPacerDelta     = $("#pacerDelta");
+const elPacerDeltaM    = $("#pacerDeltaM");
 let   elPacerRabbitIcon = $("#pacerRabbitIcon");
 let   elPacerRunnerIcon = $("#pacerRunnerIcon");
+const chkPacer         = $("#togglePacer");
 
-// Chemins icônes locales (orientées vers la droite)
+// Fin manuelle
+const afterCourse = $("#afterCourse");
+const nextCourse  = $("#nextCourse");
+
+// Icônes locales (orientées vers la droite)
 const RABBIT_SRC = "./img/rabbit-right.png";
 const RUNNER_SRC = "./img/runner-right.png";
 
@@ -52,12 +58,12 @@ function setupIcons() {
   if (elPacerRabbitIcon) {
     elPacerRabbitIcon.src = RABBIT_SRC;
     elPacerRabbitIcon.onerror = () => { elPacerRabbitIcon = makeDot(elPacerRabbitIcon, "pacer-rabbit-dot"); };
-    elPacerRabbitIcon.style.transform = "translateX(-50%)"; // déjà dans le bon sens
+    elPacerRabbitIcon.style.transform = "translateX(-50%)"; // sens droite
   }
   if (elPacerRunnerIcon) {
     elPacerRunnerIcon.src = RUNNER_SRC;
     elPacerRunnerIcon.onerror = () => { elPacerRunnerIcon = makeDot(elPacerRunnerIcon, "pacer-runner-dot"); };
-    // ⚠️ Retourner horizontalement pour regarder vers la droite si besoin :
+    // certains PNG/emoji regardent à gauche : on force le miroir si besoin
     elPacerRunnerIcon.style.transform = "translateX(-50%) scaleX(-1)";
   }
 }
@@ -97,47 +103,55 @@ function beep(freq=1000, dur=0.08, vol=0.05){
 }
 
 // ========================
-// PACER
-// ========================
+// PACER (temps → position, temps → plots)
+–========================
 function targetSpeedKmh(){ const r=currentRunner(), b=currentCourse(); return r.vma*(b.pctVMA/100); }
 function targetSpeedMps(){ return targetSpeedKmh()*1000/3600; }
 function plotsPerSecond(){ const s=pack.spacing_m||12.5; return targetSpeedMps()/s; }
 function totalExpectedPlots(){ const sec=mmssToSecondsLocal(currentCourse().duree); return plotsPerSecond()*sec; }
+
+// cumul coureur (toutes tranches)
 function runnerPlotsCumul(){ const done=partsBuffer.reduce((sum,p)=> sum+(p.actual||0), 0); return done + subPlots; }
-function rabbitPlotsCumul(){ return plotsPerSecond()*elapsedSec; }
 
 function updatePacerUI(){
-  if(!elPacerBar) return;
+  // (option) masquer/afficher
+  if (chkPacer && elPacerWrap) elPacerWrap.classList.toggle("hidden", !chkPacer.checked);
+  if (!elPacerBar || (chkPacer && !chkPacer.checked)) return;
 
   const total   = Math.max(1e-6, totalExpectedPlots());
-  const rabbit  = rabbitPlotsCumul();
-  const runner  = runnerPlotsCumul();
+  const rabbitCumul = plotsPerSecond() * elapsedSec;       // plots “prévus” à t secondes
+  const runnerCumul = runnerPlotsCumul();
 
-  const posRabbit = Math.max(0, Math.min(100, (rabbit/total)*100));
-  const posRunner = Math.max(0, Math.min(100, (runner/total)*100));
+  // --- Position visuelle basée sur le TEMPS (coïncide avec la durée)
+  const timeFrac = Math.min(1, courseDur ? elapsedSec / courseDur : 0);
+  const posRabbit = timeFrac * 100;                                       // 0→100% sur la durée
+  const posRunner = Math.max(0, Math.min(100, (runnerCumul/total)*100));  // coureur = réalisé/attendu
 
-  // Positionner icônes / pastilles (gauche -> droite)
+  // Poser icônes + badge
   if (elPacerRabbitIcon) elPacerRabbitIcon.style.left = posRabbit + "%";
   if (elPacerRunnerIcon) elPacerRunnerIcon.style.left = posRunner + "%";
-  if (elPacerBadge)      elPacerBadge.style.left      = posRabbit + "%";
+  if (elPacerBadge)       elPacerBadge.style.left     = posRabbit + "%";
 
-  // Badge : plots à "manger" pour finir le bloc courant
-  const targetBlock = targetPlotsPer90();
-  const remainBlock = Math.max(0, targetBlock - subPlots);
-  if (elPacerBadge) elPacerBadge.textContent = (remainBlock>0?'+':'') + remainBlock + ' plots';
+  // --- BADGE : retard immédiat dans le BLOC courant (0→90s)
+  const needNow = Math.max(0, Math.round(plotsPerSecond()*subElapsedSec - subPlots));
+  if (elPacerBadge) {
+    elPacerBadge.textContent = (needNow>0?'+':'0') + ' plots';
+    elPacerBadge.style.backgroundColor = needNow===0 ? '#d1fae5' : '#dbeafe';
+    elPacerBadge.style.borderColor     = needNow===0 ? '#a7f3d0' : '#bfdbfe';
+  }
 
-  // Couleur piste selon écart cumul
-  const delta = runner - rabbit;
+  // Couleur piste selon écart cumul global
+  const delta = runnerCumul - rabbitCumul;
   const tol   = total * 0.01;
   let color = "rgba(245,245,245,1)";
-  if (delta >  tol) color = "rgba(34,197,94,.25)";  // vert (avance)
-  if (delta < -tol) color = "rgba(239,68,68,.25)";  // rouge (retard)
+  if (delta >  tol) color = "rgba(34,197,94,.25)";
+  if (delta < -tol) color = "rgba(239,68,68,.25)";
   if (elPacerTrack) elPacerTrack.style.background = color;
 
   // Légendes
   if (elPacerTotal)     elPacerTotal.textContent     = Math.round(total);
-  if (elPacerRabbitNow) elPacerRabbitNow.textContent = Math.round(rabbit);
-  if (elPacerRunnerNow) elPacerRunnerNow.textContent = Math.round(runner);
+  if (elPacerRabbitNow) elPacerRabbitNow.textContent = Math.round(rabbitCumul);
+  if (elPacerRunnerNow) elPacerRunnerNow.textContent = Math.round(runnerCumul);
   if (elPacerDelta)     elPacerDelta.textContent     = (delta>0?'+':'') + Math.round(delta);
   if (elPacerDeltaM)    elPacerDeltaM.textContent    = Math.round(delta * (pack.spacing_m||12.5));
 }
@@ -225,7 +239,10 @@ function loop(){
   if (elapsedSec >= courseDur) {
     if (subElapsedSec > 0 && subElapsedSec < 90) saveSub();
     running=false;
-    advanceAfterCourse();
+    // NE PAS auto-avancer : montrer les boutons d’action
+    if (afterCourse) afterCourse.classList.remove("hidden");
+    btnStart.disabled = true;
+    refreshUI();
     return;
   }
 
@@ -246,7 +263,16 @@ $("#btnStart").addEventListener("click", ()=>{
   courseDur = sec; elapsedSec=0; subElapsedSec=0;
   startMs = performance.now(); subStartMs = startMs;
   applyCourseTheme(); bodyClassForRunner(currentRunnerKey());
+  if (afterCourse) afterCourse.classList.add("hidden");
   running=true; refreshUI(); requestAnimationFrame(loop);
+});
+if (chkPacer) chkPacer.addEventListener('change', updatePacerUI);
+
+if (nextCourse) nextCourse.addEventListener('click', ()=>{
+  // passe aux courses suivantes (comme avant, mais sur clic)
+  advanceAfterCourse();
+  // prêt pour lancer la suivante
+  btnStart.disabled = false;
 });
 
 // ========================
