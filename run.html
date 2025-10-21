@@ -17,8 +17,7 @@
   }
   .pacer-rabbit-dot { background:#3b82f6; } /* bleu */
   .pacer-runner-dot { background:#22c55e; } /* vert */
-  /* Les images ne sont visibles que si elles chargent (JS enlèvera display:none au onload) */
-  .pacer-img { display:none; }
+  .pacer-img { display:none; } /* les PNG ne s’affichent que si onload OK */
 </style>
 </head>
 <body class="runnerA course0">
@@ -81,11 +80,6 @@
             <img id="pacerRunnerIcon" alt="Coureur"
                  class="pacer-img absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
                  style="left:0%" />
-
-            <!-- Badge : retard immédiat dans le bloc courant -->
-            <div id="pacerBadge"
-                 class="absolute -top-12 px-2 py-1 rounded-lg text-sm font-bold text-gray-900 bg-blue-100 border border-blue-200 transform -translate-x-1/2 shadow-sm"
-                 style="left:0%">+0 plots</div>
           </div>
         </div>
 
@@ -118,7 +112,6 @@
     <!-- Fin de course : pas d’auto-avance -->
     <section id="afterCourse" class="hidden flex justify-center gap-3">
       <button id="nextCourse" class="btn btn-primary">Passer à la course suivante</button>
-      <a href="./recap.html" class="btn btn-ghost">Voir récap</a>
     </section>
   </main>
 
