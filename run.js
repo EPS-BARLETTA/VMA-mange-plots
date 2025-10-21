@@ -15,17 +15,25 @@ const elTimer=$("#timer"), elSubLeft=$("#subLeft"), elSubFill=$("#subFill"),
       elCounter=$("#counter"), panel=$("#counterPanel"), elTarget=$("#targetPlots"),
       btnStart=$("#btnStart");
 
-// === PACER DOM (lièvre vs coureur) ===
+// === PACER ICONS (images) ===
+// Place tes fichiers dans ./img/ ; PNG ou SVG
+const PACER_RABBIT_SRC = './img/rabbit.svg';
+const PACER_RUNNER_SRC = './img/runner.svg';
+
 const elPacerBar = $("#pacerBar");
 const elPacerTrack = $("#pacerTrack");
-const elPacerRabbit = $("#pacerRabbit");
-const elPacerRunner = $("#pacerRunner");
 const elPacerBadge = $("#pacerBadge");
 const elPacerTotal = $("#pacerTotal");
 const elPacerRabbitNow = $("#pacerRabbitNow");
 const elPacerRunnerNow = $("#pacerRunnerNow");
 const elPacerDelta = $("#pacerDelta");
 const elPacerDeltaM = $("#pacerDeltaM");
+
+// Icônes
+const elPacerRabbitIcon = $("#pacerRabbitIcon");
+const elPacerRunnerIcon = $("#pacerRunnerIcon");
+if (elPacerRabbitIcon) elPacerRabbitIcon.src = PACER_RABBIT_SRC;
+if (elPacerRunnerIcon) elPacerRunnerIcon.src = PACER_RUNNER_SRC;
 
 // ========================
 //        UTILITAIRES
@@ -111,9 +119,9 @@ function updatePacerUI(){
   const posRabbit = Math.max(0, Math.min(100, (rabbit / safeTotal) * 100));
   const posRunner = Math.max(0, Math.min(100, (runner / safeTotal) * 100));
 
-  if (elPacerRabbit) elPacerRabbit.style.left = posRabbit + '%';
-  if (elPacerRunner) elPacerRunner.style.left = posRunner + '%';
-  if (elPacerBadge)  elPacerBadge.style.left  = posRabbit + '%';
+  // Positionner les icônes
+  if (elPacerRabbitIcon) elPacerRabbitIcon.style.left = posRabbit + '%';
+  if (elPacerRunnerIcon) elPacerRunnerIcon.style.left = posRunner + '%';
 
   // Badge = plots à "manger" pour finir le bloc courant (cible bloc − réalisé bloc)
   const targetBlock = targetPlotsPer90();
@@ -157,7 +165,6 @@ function refreshUI(){
   elTimer.classList.toggle('blink', subLeft<=5 && running);
   btnStart.disabled = running;
 
-  // maj pacer
   updatePacerUI();
 }
 
@@ -230,7 +237,7 @@ function loop(){
     updatePacerUI();
   }
 
-  // ✅ FIN DE COURSE — sauver tranche partielle si <90s
+  // Fin de course (sauver tranche partielle)
   if (elapsedSec >= courseDur) {
     if (subElapsedSec > 0 && subElapsedSec < 90) {
       saveSub();
