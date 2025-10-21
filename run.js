@@ -1,9 +1,9 @@
 // =====================
 //  Mange Plots — run.js (pacer simple, ±1 plot vert, fin 1re course manuelle, 2e course → récap)
-//  build: mp-2025-10-21-2
+//  build: mp-2025-10-21-3
 // =====================
 
-console.log("run.js build mp-2025-10-21-2");
+console.log("run.js build mp-2025-10-21-3");
 
 const $ = (s) => document.querySelector(s);
 const pack = loadJSON(KEY_RUNNERS, null);
@@ -50,19 +50,21 @@ const RUNNER_SRC = "./img/runner-right.png";
 
 // Images masquées par défaut : on les affiche uniquement si onload réussi
 function setupIcons() {
-  if (elPacerRabbitIcon) {
-    elPacerRabbitIcon.onload  = () => { elPacerRabbitIcon.style.display = 'block'; };
-    elPacerRabbitIcon.onerror = () => { elPacerRabbitIcon.remove(); elPacerRabbitIcon = null; };
-    elPacerRabbitIcon.src = RABBIT_SRC;
-    elPacerRabbitIcon.style.transform = "translateX(-50%)";
-  }
-  if (elPacerRunnerIcon) {
-    elPacerRunnerIcon.onload  = () => { elPacerRunnerIcon.style.display = 'block'; };
-    elPacerRunnerIcon.onerror = () => { elPacerRunnerIcon.remove(); elPacerRunnerIcon = null; };
-    elPacerRunnerIcon.src = RUNNER_SRC;
-    // force regard à droite si l'image native regarde à gauche
-    elPacerRunnerIcon.style.transform = "translateX(-50%) scaleX(-1)";
-  }
+  try{
+    if (elPacerRabbitIcon) {
+      elPacerRabbitIcon.onload  = () => { elPacerRabbitIcon.style.display = 'block'; };
+      elPacerRabbitIcon.onerror = () => { elPacerRabbitIcon.remove(); elPacerRabbitIcon = null; };
+      elPacerRabbitIcon.src = RABBIT_SRC;
+      elPacerRabbitIcon.style.transform = "translateX(-50%)";
+    }
+    if (elPacerRunnerIcon) {
+      elPacerRunnerIcon.onload  = () => { elPacerRunnerIcon.style.display = 'block'; };
+      elPacerRunnerIcon.onerror = () => { elPacerRunnerIcon.remove(); elPacerRunnerIcon = null; };
+      elPacerRunnerIcon.src = RUNNER_SRC;
+      // force regard à droite si l'image native regarde à gauche
+      elPacerRunnerIcon.style.transform = "translateX(-50%) scaleX(-1)";
+    }
+  }catch(e){ console.warn('setupIcons error', e); }
 }
 setupIcons();
 
@@ -119,61 +121,69 @@ function totalExpectedPlots(){ const sec=mmssToSecondsLocal(currentCourse().dure
 function runnerPlotsCumul(){ const done=partsBuffer.reduce((sum,p)=> sum+(p.actual||0), 0); return done + subPlots; }
 
 function updatePacerUI(){
-  // (option) masquer/afficher
-  if (chkPacer && elPacerWrap) elPacerWrap.classList.toggle("hidden", !chkPacer.checked);
-  if (!elPacerBar || (chkPacer && !chkPacer.checked)) return;
+  try{
+    // (option) masquer/afficher
+    if (chkPacer && elPacerWrap) elPacerWrap.classList.toggle("hidden", !chkPacer.checked);
+    if (!elPacerBar || (chkPacer && !chkPacer.checked)) return;
 
-  const total         = Math.max(1e-6, totalExpectedPlots());
-  const rabbitCumul   = plotsPerSecond() * elapsedSec;        // prévu à t secondes
-  const runnerCumul   = runnerPlotsCumul();
+    const total         = Math.max(1e-6, totalExpectedPlots());
+    const rabbitCumul   = plotsPerSecond() * elapsedSec;        // prévu à t secondes
+    const runnerCumul   = runnerPlotsCumul();
 
-  // Position du lièvre basée sur le TEMPS (0→100% sur la durée)
-  const timeFrac   = Math.min(1, courseDur ? elapsedSec / courseDur : 0);
-  const posRabbit  = timeFrac * 100;
-  const posRunner  = Math.max(0, Math.min(100, (runnerCumul/total)*100));
+    // Position du lièvre basée sur le TEMPS (0→100% sur la durée)
+    const timeFrac   = Math.min(1, courseDur ? elapsedSec / courseDur : 0);
+    const posRabbit  = timeFrac * 100;
+    const posRunner  = Math.max(0, Math.min(100, (runnerCumul/total)*100));
 
-  // Mettre à jour icônes + pastilles
-  const setLeft = (el, v) => { if(el) el.style.left = v + "%"; };
-  setLeft(elPacerRabbitDot, posRabbit);
-  setLeft(elPacerRunnerDot, posRunner);
-  setLeft(elPacerRabbitIcon, posRabbit);
-  setLeft(elPacerRunnerIcon, posRunner);
+    // Mettre à jour icônes + pastilles
+    const setLeft = (el, v) => { if(el) el.style.left = v + "%"; };
+    setLeft(elPacerRabbitDot, posRabbit);
+    setLeft(elPacerRunnerDot, posRunner);
+    setLeft(elPacerRabbitIcon, posRabbit);
+    setLeft(elPacerRunnerIcon, posRunner);
 
-  // Couleur piste : VERT si |delta| <= 1 plot, sinon ROUGE
-  const deltaPlots = runnerCumul - rabbitCumul;
-  const ok = Math.abs(deltaPlots) <= 1;
-  if (elPacerTrack) elPacerTrack.style.background = ok ? "rgba(34,197,94,.25)" : "rgba(239,68,68,.25)";
+    // Couleur piste : VERT si |delta| <= 1 plot, sinon ROUGE
+    const deltaPlots = runnerCumul - rabbitCumul;
+    const ok = Math.abs(deltaPlots) <= 1;
+    if (elPacerTrack) elPacerTrack.style.background = ok ? "rgba(34,197,94,.25)" : "rgba(239,68,68,.25)";
 
-  // Légendes cumul (pour contrôle)
-  if (elPacerTotal)     elPacerTotal.textContent     = Math.round(total);
-  if (elPacerRabbitNow) elPacerRabbitNow.textContent = Math.round(rabbitCumul);
-  if (elPacerRunnerNow) elPacerRunnerNow.textContent = Math.round(runnerCumul);
-  if (elPacerDelta)     elPacerDelta.textContent     = (deltaPlots>0?'+':'') + Math.round(deltaPlots);
-  if (elPacerDeltaM)    elPacerDeltaM.textContent    = Math.round(deltaPlots * (pack.spacing_m||12.5));
+    // Légendes cumul (pour contrôle)
+    if (elPacerTotal)     elPacerTotal.textContent     = Math.round(total);
+    if (elPacerRabbitNow) elPacerRabbitNow.textContent = Math.round(rabbitCumul);
+    if (elPacerRunnerNow) elPacerRunnerNow.textContent = Math.round(runnerCumul);
+    if (elPacerDelta)     elPacerDelta.textContent     = (deltaPlots>0?'+':'') + Math.round(deltaPlots);
+    if (elPacerDeltaM)    elPacerDeltaM.textContent    = Math.round(deltaPlots * (pack.spacing_m||12.5));
+  }catch(e){
+    console.warn('updatePacerUI error', e);
+  }
 }
 
 // ========================
 // UI + LOGIQUE
 // ========================
 function refreshUI(){
-  const r=currentRunner();
-  elFirst.textContent = r.prenom; elLast.textContent = " " + r.nom;
+  try{
+    const r=currentRunner();
+    elFirst.textContent = r.prenom; elLast.textContent = " " + r.nom;
 
-  const left = Math.max(0, courseDur - elapsedSec);
-  elTimer.textContent = secondsToMMSS(left);
+    const left = Math.max(0, courseDur - elapsedSec);
+    elTimer.textContent = secondsToMMSS(left);
 
-  const subLeft = Math.max(0, 90 - subElapsedSec);
-  elSubLeft.textContent = secondsToMMSS(subLeft);
-  elSubFill.style.width = `${Math.min(100, (subElapsedSec/90)*100)}%`;
+    const subLeft = Math.max(0, 90 - subElapsedSec);
+    elSubLeft.textContent = secondsToMMSS(subLeft);
+    elSubFill.style.width = `${Math.min(100, (subElapsedSec/90)*100)}%`;
 
-  elCounter.textContent = subPlots;
-  elTarget.textContent  = targetPlotsPer90();
-  setPanelAlt();
+    elCounter.textContent = subPlots;
+    elTarget.textContent  = targetPlotsPer90();
+    setPanelAlt();
 
-  elTimer.classList.toggle("blink", subLeft<=5 && running);
-  btnStart.disabled = running;
+    elTimer.classList.toggle("blink", subLeft<=5 && running);
+    btnStart.disabled = running;
 
-  updatePacerUI();
+    updatePacerUI();
+  }catch(e){
+    console.error('refreshUI error', e);
+  }
 }
 
 function saveSub(){
@@ -221,6 +231,32 @@ function advanceAfterCourse(){
   applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI();
 }
 
+// === Lancement de course regroupé ===
+function startCourse(){
+  try{
+    // s’assurer que le bouton est cliquable
+    btnStart.disabled = false;
+
+    if(running) return;
+    ensureAudio();
+    try{ new (window.NoSleep||function(){})().enable?.(); }catch(e){}
+
+    const sec = mmssToSecondsLocal(currentCourse().duree);
+    courseDur = sec; elapsedSec=0; subElapsedSec=0;
+    startMs = performance.now(); subStartMs = startMs;
+
+    applyCourseTheme(); bodyClassForRunner(currentRunnerKey());
+
+    if (afterCourse) afterCourse.classList.add("hidden");
+    running = true;
+    refreshUI();
+    requestAnimationFrame(loop);
+  }catch(err){
+    console.error('startCourse error', err);
+    alert("Impossible de démarrer la course (voir console).");
+  }
+}
+
 function loop(){
   if(!running) return;
   const now = performance.now();
@@ -243,14 +279,11 @@ function loop(){
     running=false;
 
     if (isLastCourseInstance()) {
-      // Dernière occurrence → on enchaîne le flux normal (peut envoyer récap)
-      advanceAfterCourse();
+      advanceAfterCourse(); // dernière occurrence -> récap auto si fin
       return;
     } else {
-      // 1ʳᵉ occurrence (ou non dernière) : afficher "Passer à la course suivante" uniquement,
-      // et désactiver Démarrer pour empêcher un restart sur la même course.
       if (afterCourse) afterCourse.classList.remove("hidden");
-      btnStart.disabled = true;
+      btnStart.disabled = true;  // empêcher relance sur la même course
       refreshUI();
       return;
     }
@@ -265,25 +298,11 @@ function loop(){
 // ========================
 $("#btnPlus").addEventListener("click", ()=>{ if(!running) return; subPlots+=1; refreshUI(); });
 $("#btnMinus").addEventListener("click", ()=>{ if(!running) return; if(subPlots>0) subPlots-=1; refreshUI(); });
-
-$("#btnStart").addEventListener("click", ()=>{
-  if(running) return;
-  ensureAudio();
-  try{ new (window.NoSleep||function(){})().enable?.(); }catch(e){}
-  const sec = mmssToSecondsLocal(currentCourse().duree);
-  courseDur = sec; elapsedSec=0; subElapsedSec=0;
-  startMs = performance.now(); subStartMs = startMs;
-  applyCourseTheme(); bodyClassForRunner(currentRunnerKey());
-  if (afterCourse) afterCourse.classList.add("hidden");
-  running=true; refreshUI(); requestAnimationFrame(loop);
-});
-
+$("#btnStart").addEventListener("click", startCourse);
 if (chkPacer) chkPacer.addEventListener('change', updatePacerUI);
 
-// 👉 PATCH: réactive proprement le bouton démarrer à la course suivante,
-// et reset l’affichage. Pas d’auto-récap ici : c’est géré par advanceAfterCourse().
+// passe à la course suivante uniquement sur clic, puis réactive proprement
 if (nextCourse) nextCourse.addEventListener('click', ()=>{
-  // passe à la course suivante
   advanceAfterCourse();
 
   // si on n'est pas à la dernière occurrence, on prépare la nouvelle
@@ -291,7 +310,7 @@ if (nextCourse) nextCourse.addEventListener('click', ()=>{
     btnStart.disabled = false;            // prêt à démarrer la nouvelle course
     if (afterCourse) afterCourse.classList.add("hidden");
   }
-  // reset compteurs visuels pour partir proprement
+  // reset compteurs visuels
   subPlots = 0;
   elapsedSec = 0;
   subElapsedSec = 0;
@@ -302,5 +321,12 @@ if (nextCourse) nextCourse.addEventListener('click', ()=>{
 // INIT
 // ========================
 (function init(){
-  applyCourseTheme(); bodyClassForRunner(currentRunnerKey()); refreshUI();
+  try{
+    applyCourseTheme(); bodyClassForRunner(currentRunnerKey());
+    // s’assurer que le bouton est actif au 1er affichage
+    btnStart.disabled = false;
+    refreshUI();
+  }catch(e){
+    console.error('init error', e);
+  }
 })();
