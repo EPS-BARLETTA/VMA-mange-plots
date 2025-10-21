@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="./app.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noSleep/0.12.0/NoSleep.min.js"></script>
 <style>
-  /* Pastilles fallback (si images bloquées) */
+  /* Pastilles visibles par défaut (fallback) */
   .pacer-dot {
     width: 28px; height: 28px; border-radius: 9999px;
     border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.15);
@@ -17,6 +17,8 @@
   }
   .pacer-rabbit-dot { background:#3b82f6; } /* bleu */
   .pacer-runner-dot { background:#22c55e; } /* vert */
+  /* Les images ne sont visibles que si elles chargent (JS enlèvera display:none au onload) */
+  .pacer-img { display:none; }
 </style>
 </head>
 <body class="runnerA course0">
@@ -63,25 +65,27 @@
 
         <h2 class="text-xl font-extrabold">Lièvre (projet) vs Coureur</h2>
 
-        <!-- Barre globale : overflow-visible + h-6 -->
+        <!-- Barre globale : overflow-visible + un peu plus haute -->
         <div id="pacerWrap" class="mx-auto" style="max-width:720px">
           <div id="pacerBar" class="relative h-6 rounded-full bg-gray-200 overflow-visible">
             <div id="pacerTrack" class="absolute inset-0"></div>
 
-            <!-- Icône lièvre (image locale) -->
+            <!-- Pastilles par défaut -->
+            <div id="pacerRabbitDot" class="pacer-dot pacer-rabbit-dot" style="left:0%"></div>
+            <div id="pacerRunnerDot" class="pacer-dot pacer-runner-dot" style="left:0%"></div>
+
+            <!-- Images (affichées si chargent) -->
             <img id="pacerRabbitIcon" alt="Lièvre"
-                 class="absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
+                 class="pacer-img absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
+                 style="left:0%" />
+            <img id="pacerRunnerIcon" alt="Coureur"
+                 class="pacer-img absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
                  style="left:0%" />
 
-            <!-- Badge lièvre : retard immédiat dans le bloc courant -->
+            <!-- Badge : retard immédiat dans le bloc courant -->
             <div id="pacerBadge"
                  class="absolute -top-12 px-2 py-1 rounded-lg text-sm font-bold text-gray-900 bg-blue-100 border border-blue-200 transform -translate-x-1/2 shadow-sm"
                  style="left:0%">+0 plots</div>
-
-            <!-- Icône coureur -->
-            <img id="pacerRunnerIcon" alt="Coureur"
-                 class="absolute -top-5 w-8 h-8 transform -translate-x-1/2 select-none pointer-events-none drop-shadow"
-                 style="left:0%" />
           </div>
         </div>
 
