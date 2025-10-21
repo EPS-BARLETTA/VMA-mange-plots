@@ -1,9 +1,9 @@
 // =====================
 //  Mange Plots — run.js (pacer simple, ±1 plot vert, fin 1re course manuelle, 2e course → récap)
-//  build: mp-2025-10-21-3
+//  build: mp-2025-10-21-4
 // =====================
 
-console.log("run.js build mp-2025-10-21-3");
+console.log("run.js build mp-2025-10-21-4");
 
 const $ = (s) => document.querySelector(s);
 const pack = loadJSON(KEY_RUNNERS, null);
@@ -234,8 +234,8 @@ function advanceAfterCourse(){
 // === Lancement de course regroupé ===
 function startCourse(){
   try{
-    // s’assurer que le bouton est cliquable
-    btnStart.disabled = false;
+    btnStart.disabled = false;     // s’assurer cliquable
+    btnStart.style.display = '';   // s’assurer visible
 
     if(running) return;
     ensureAudio();
@@ -283,7 +283,9 @@ function loop(){
       return;
     } else {
       if (afterCourse) afterCourse.classList.remove("hidden");
-      btnStart.disabled = true;  // empêcher relance sur la même course
+      // ⚠️ cacher totalement "Démarrer" pour empêcher toute relance sur la même course
+      btnStart.disabled = true;
+      btnStart.style.display = 'none';
       refreshUI();
       return;
     }
@@ -308,6 +310,7 @@ if (nextCourse) nextCourse.addEventListener('click', ()=>{
   // si on n'est pas à la dernière occurrence, on prépare la nouvelle
   if (!isLastCourseInstance()) {
     btnStart.disabled = false;            // prêt à démarrer la nouvelle course
+    btnStart.style.display = '';          // ré-affiche "Démarrer"
     if (afterCourse) afterCourse.classList.add("hidden");
   }
   // reset compteurs visuels
@@ -323,8 +326,9 @@ if (nextCourse) nextCourse.addEventListener('click', ()=>{
 (function init(){
   try{
     applyCourseTheme(); bodyClassForRunner(currentRunnerKey());
-    // s’assurer que le bouton est actif au 1er affichage
+    // état initial : démarrer visible et actif
     btnStart.disabled = false;
+    btnStart.style.display = '';
     refreshUI();
   }catch(e){
     console.error('init error', e);
