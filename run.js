@@ -15,11 +15,7 @@ const elTimer=$("#timer"), elSubLeft=$("#subLeft"), elSubFill=$("#subFill"),
       elCounter=$("#counter"), panel=$("#counterPanel"), elTarget=$("#targetPlots"),
       btnStart=$("#btnStart");
 
-// === PACER ICONS (images) ===
-// Place tes fichiers dans ./img/ ; PNG ou SVG
-const PACER_RABBIT_SRC = './img/rabbit.svg';
-const PACER_RUNNER_SRC = './img/runner.svg';
-
+// === PACER DOM ===
 const elPacerBar = $("#pacerBar");
 const elPacerTrack = $("#pacerTrack");
 const elPacerBadge = $("#pacerBadge");
@@ -29,11 +25,44 @@ const elPacerRunnerNow = $("#pacerRunnerNow");
 const elPacerDelta = $("#pacerDelta");
 const elPacerDeltaM = $("#pacerDeltaM");
 
-// Icônes
+// Icônes OU fallback emoji
 const elPacerRabbitIcon = $("#pacerRabbitIcon");
 const elPacerRunnerIcon = $("#pacerRunnerIcon");
-if (elPacerRabbitIcon) elPacerRabbitIcon.src = PACER_RABBIT_SRC;
-if (elPacerRunnerIcon) elPacerRunnerIcon.src = PACER_RUNNER_SRC;
+
+// Chemins d’icônes (met tes fichiers ici si tu veux de “vraies” images)
+const PACER_RABBIT_SRC = './img/rabbit.svg';
+const PACER_RUNNER_SRC = './img/runner.svg';
+
+// Fallback emoji si les images ne chargent pas
+function useEmojiFallback(iconEl, emojiChar, offsetTopPx = -20) {
+  if (!iconEl || !iconEl.parentElement) return;
+  const span = document.createElement('span');
+  span.textContent = emojiChar;
+  span.style.position = 'absolute';
+  span.style.top = offsetTopPx + 'px';
+  span.style.left = iconEl.style.left || '0%';
+  span.style.transform = 'translateX(-50%)';
+  span.style.fontSize = '22px';
+  span.style.userSelect = 'none';
+  span.style.pointerEvents = 'none';
+  span.style.textShadow = '0 1px 2px rgba(0,0,0,.25)';
+  iconEl.parentElement.appendChild(span);
+  iconEl.remove();
+  return span; // on peut le repositionner ensuite
+}
+
+// Tente de charger les images, sinon bascule emoji
+let rabbitNode = elPacerRabbitIcon;
+let runnerNode = elPacerRunnerIcon;
+
+if (elPacerRabbitIcon) {
+  elPacerRabbitIcon.onerror = () => { rabbitNode = useEmojiFallback(elPacerRabbitIcon, '🐇', -24); };
+  elPacerRabbitIcon.src = PACER_RABBIT_SRC;
+}
+if (elPacerRunnerIcon) {
+  elPacerRunnerIcon.onerror = () => { runnerNode = useEmojiFallback(elPacerRunnerIcon, '🏃', -24); };
+  elPacerRunnerIcon.src = PACER_RUNNER_SRC;
+}
 
 // ========================
 //        UTILITAIRES
@@ -119,9 +148,9 @@ function updatePacerUI(){
   const posRabbit = Math.max(0, Math.min(100, (rabbit / safeTotal) * 100));
   const posRunner = Math.max(0, Math.min(100, (runner / safeTotal) * 100));
 
-  // Positionner les icônes
-  if (elPacerRabbitIcon) elPacerRabbitIcon.style.left = posRabbit + '%';
-  if (elPacerRunnerIcon) elPacerRunnerIcon.style.left = posRunner + '%';
+  // Positionner icônes OU emoji (selon ce qui est en place)
+  if (rabbitNode) rabbitNode.style.left = posRabbit + '%';
+  if (runnerNode) runnerNode.style.left = posRunner + '%';
 
   // Badge = plots à "manger" pour finir le bloc courant (cible bloc − réalisé bloc)
   const targetBlock = targetPlotsPer90();
