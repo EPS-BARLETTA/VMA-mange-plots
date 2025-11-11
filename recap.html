@@ -5,17 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Bilan — Mange Plots</title>
 
-  <!-- CSS existants -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"/>
+  <!-- CSS locaux -->
+  <link rel="stylesheet" href="./vendor/tailwind.min.css"/>
   <link rel="stylesheet" href="./app.css"/>
 
-  <!-- Librairie QR en LOCAL (MDM-safe) + fallback CDN si le local manque -->
+  <!-- Librairie QR exclusivement locale -->
   <script src="./vendor/qrcode.min.js"></script>
-  <script>
-    if (!window.QRCode) {
-      document.write('<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"><\/script>');
-    }
-  </script>
 
   <style>
     :root{ --blue-100:#dbeafe; --blue-200:#bfdbfe; --green-100:#dcfce7; --green-200:#bbf7d0; --border:#e5e7eb; --text:#0f172a; --white:#fff; }
@@ -47,20 +42,16 @@
   <main class="max-w-6xl mx-auto p-4 space-y-6">
     <h1 class="text-3xl font-extrabold">Bilan de la séance</h1>
 
-    <!-- Tableau récap -->
     <section class="card">
       <h2 class="text-xl font-bold mb-3">Récapitulatif</h2>
       <div id="recapTables" class="space-y-6"></div>
     </section>
 
-    <!-- Boutons QR (par élève / par course) -->
     <section id="qrButtons" class="grid md:grid-cols-2 gap-4"></section>
 
-    <!-- Conteneur QR caché (utile si besoin) -->
     <div id="qrBox" class="hidden"></div>
   </main>
 
-  <!-- Modale QR -->
   <div id="qrModal" class="modal">
     <button class="close" id="closeModal">Fermer</button>
     <div class="qrBox">
@@ -72,10 +63,10 @@
     <div>Mange Plots — Équipe EPS Lycée Vauban — LUXEMBOURG — JB</div>
   </footer>
 
-  <!-- helpers app -->
+  <!-- JS locaux -->
   <script src="./app.js"></script>
 
-  <!-- Helpers ScanProf (inline, génériques et compacts) -->
+  <!-- Génération QR (hors-ligne, MDM-safe) -->
   <script>
   (function () {
     function stripAccents(s){return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"");}
@@ -83,17 +74,16 @@
     function toInt(v){const n=parseInt(String(v??"").trim(),10);return Number.isFinite(n)?n:0;}
     function normalizeClasse(raw){
       let s = stripAccents(String(raw||"")).toUpperCase().replace(/\s+/g,"");
-      s = s.replace(/EME/g,"E"); // 4EME -> 4E
+      s = s.replace(/EME/g,"E");
       const m = s.match(/(\d{1,2})\s*([A-Z])/);
       if(m) return `${m[1]}${m[2]}`;
       const n = s.match(/(\d{1,2})/);
       return n ? `${n[1]}` : s;
     }
-    // Ne JAMAIS inventer de champs : on mappe uniquement ce qui existe vraiment
+
     function mapToScanProf(row){
-      // row = une "course/mesure" OU un objet élève contenant les mesures
-      const person = row.person || row; // où se trouvent nom/prenom/classe/sexe
-      const run    = row.run    || row; // où se trouvent distance/vitesse/temps/etc.
+      const person = row.person || row;
+      const run    = row.run    || row;
 
       const nom = String(person.nom||person.Nom||person.name||"").toUpperCase().trim();
       const prenom = String(person.prenom||person.Prenom||person.firstName||"").trim();
@@ -108,14 +98,12 @@
       if (run.vitesse!=null || run.speed!=null)
         out.vitesse  = toFixed2(run.vitesse ?? run.speed);
 
-      // tout le reste va dans extras (si présent)
       const extras = {};
       const baseKeys = new Set(Object.keys(out));
       Object.keys(run).forEach(k => {
         if (!baseKeys.has(k) && run[k] !== undefined && run[k] !== null && run[k] !== "")
           extras[k] = run[k];
       });
-      // si la couche "person" contient des infos utiles annexes (ex. groupe, piste, etc.)
       ["temps","time","difficulte","difficoltà","blocs","bloc_reussis","bloc_reussit","vma","session","app"].forEach(k=>{
         if (person[k]!=null && person[k]!=="") extras[k] = person[k];
       });
@@ -128,29 +116,15 @@
       const el = document.getElementById(targetId);
       if (!el) return {ok:false, why:"no-target"};
       el.innerHTML = "";
-      // 1) essayer avec extras
       try {
         const text = JSON.stringify(payloadRows.map(mapToScanProf));
-        new QRCode(el, { text, width:size, height:size, correctLevel: QRCode.CorrectLevel.L });
+        new QRCode(el, { text, width:size, height:size, correctLevel: QRCode.CorrectLevel.M });
         return {ok:true};
-      } catch(e1) {
-        // 2) retenter sans extras
-        try {
-          const trimmed = payloadRows.map(r => {
-            const o = mapToScanProf(r);
-            delete o.extras;
-            return o;
-          });
-          const text2 = JSON.stringify(trimmed);
-          new QRCode(el, { text: text2, width:size, height:size, correctLevel: QRCode.CorrectLevel.L });
-          return {ok:true, trimmed:true};
-        } catch(e2) {
-          return {ok:false, why:"overflow"};
-        }
+      } catch {
+        return {ok:false, why:"overflow"};
       }
     }
 
-    // Crée des boutons : 1 élève peut avoir 1..n "courses/mesures"
     function renderScanProfUI(list){
       const data = Array.isArray(list)? list : [list];
       const btns  = document.getElementById("qrButtons");
@@ -161,13 +135,12 @@
       btns.innerHTML = "";
 
       data.forEach(person => {
-        // détecter des mesures : runs / courses / mesures / course
         let runs = [];
         if (Array.isArray(person.runs)) runs = person.runs;
         else if (Array.isArray(person.courses)) runs = person.courses;
         else if (Array.isArray(person.mesures)) runs = person.mesures;
         else if (person.course) runs = [person.course];
-        else runs = [person]; // fallback : les champs sont directs
+        else runs = [person];
 
         runs.forEach((run, idx) => {
           const wrap = document.createElement("div");
@@ -199,10 +172,8 @@
   })();
   </script>
 
-  <!-- Ton recap.js -->
   <script src="./recap.js"></script>
 
-  <!-- Initialisation : récupère la liste depuis variables globales ou localStorage -->
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     let data = window.eleves || window.rows || window.liste;
